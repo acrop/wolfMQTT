@@ -701,7 +701,7 @@ static int NetConnect(void *context, const char* host, word16 port,
 
 exit:
     /* Show error */
-    if (rc != 0) {
+    if (rc != 0 && rc != MQTT_CODE_CONTINUE) {
         PRINTF("NetConnect: Rc=%d, SoErr=%d", rc, so_error);
     }
 
