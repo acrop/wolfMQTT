@@ -624,8 +624,10 @@ static int NetConnect(void *context, const char* host, word16 port,
 
                 freeaddrinfo(result);
             }
-            if (rc != 0)
+            if (rc != 0) {
+                rc = MQTT_CODE_ERROR_DNS_RESOLVE;
                 goto exit;
+            }
 
             /* Default to error */
             rc = -1;
