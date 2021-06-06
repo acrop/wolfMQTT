@@ -685,6 +685,9 @@ static int NetConnect(void *context, const char* host, word16 port,
                     rc = MQTT_CODE_CONTINUE;
             #endif
                 }
+                else if (so_error == EHOSTUNREACH) {
+                    rc = MQTT_CODE_ERROR_ROUTE_TO_HOST;
+                }
         #endif
             }
             break;
