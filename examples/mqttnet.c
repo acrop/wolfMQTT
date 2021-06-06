@@ -766,6 +766,7 @@ static void setup_timeout(struct timeval* tv, int timeout_ms)
         tv->tv_usec = 100;
     }
 }
+#endif /* !WOLFMQTT_NO_TIMEOUT */
 
 #ifdef WOLFMQTT_NONBLOCK
 static void tcp_set_nonblocking(SOCKET_T* sockfd)
@@ -785,7 +786,6 @@ static void tcp_set_nonblocking(SOCKET_T* sockfd)
 #endif
 }
 #endif /* WOLFMQTT_NONBLOCK */
-#endif /* !WOLFMQTT_NO_TIMEOUT */
 
 static int NetConnect(void *context, const char* host, word16 port,
     int timeout_ms)
@@ -872,7 +872,7 @@ static int NetConnect(void *context, const char* host, word16 port,
             FD_SET(sock->fd, &fdset);
         #endif /* !WOLFMQTT_NO_TIMEOUT */
 
-        #if !defined(WOLFMQTT_NO_TIMEOUT) && defined(WOLFMQTT_NONBLOCK)
+        #if defined(WOLFMQTT_NONBLOCK)
             if (mqttCtx->useNonBlockMode) {
                 /* Set socket as non-blocking */
                 tcp_set_nonblocking(&sock->fd);
@@ -897,7 +897,7 @@ static int NetConnect(void *context, const char* host, word16 port,
                         rc = MQTT_CODE_SUCCESS;
                     }
             #else
-                    rc = MQTT_CODE_CONTINUE;
+                    rc = MQTT_CODE_SUCCESS;
             #endif
                 }
                 else if (so_error == EHOSTUNREACH) {
