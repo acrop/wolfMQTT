@@ -174,9 +174,6 @@ int MqttSocket_Write(MqttClient *client, const byte* buf, int buf_len,
             rc = MQTT_CODE_CONTINUE;
         }
     }
-    else if (rc == EWOULDBLOCK || rc == EAGAIN) {
-        rc = MQTT_CODE_CONTINUE;
-    }
 
 #else
     do {
@@ -259,10 +256,6 @@ int MqttSocket_Read(MqttClient *client, byte* buf, int buf_len, int timeout_ms)
             rc = MQTT_CODE_CONTINUE;
         }
     }
-    else if (rc == EWOULDBLOCK || rc == EAGAIN) {
-        rc = MQTT_CODE_CONTINUE;
-    }
-
 #else
     do {
         rc = MqttSocket_ReadDo(client, &buf[client->read.pos],
