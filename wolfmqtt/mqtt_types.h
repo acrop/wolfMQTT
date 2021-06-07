@@ -90,8 +90,12 @@
 
     #elif defined(USE_WINDOWS_API)
         /* Windows semaphore object */
-        #include <winsock2.h> /* winsock2.h needs included before windows.h */
-        #include <ws2tcpip.h>
+        #if defined(WOLFSSL_LWIP)
+            #define _WINSOCK2API_
+        #else
+            #include <winsock2.h> /* winsock2.h needs included before windows.h */
+            #include <ws2tcpip.h>
+        #endif
         #include <windows.h>
         typedef HANDLE wm_Sem;
     
