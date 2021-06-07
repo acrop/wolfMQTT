@@ -194,6 +194,7 @@ typedef struct _MqttTopic {
     MqttQoS     qos; /* Bits 0-1 = MqttQoS */
     byte        return_code; /* MqttSubscribeAckReturnCodes */
 #ifdef WOLFMQTT_V5
+    word32      sub_id;
 #endif
 } MqttTopic;
 
