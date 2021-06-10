@@ -207,7 +207,7 @@ void mqtt_show_usage(MQTTCtx* mqttCtx)
             mqttCtx->cmd_timeout_ms);
 #ifdef WOLFMQTT_V5
     PRINTF("-P <num>    Max packet size the client will accept, default: %d",
-            DEFAULT_MAX_PKT_SZ);
+            WOLFMQTT_MAX_PACKET_SIZE);
 #endif
     PRINTF("-T          Test mode");
     if (mqttCtx->pub_file) {
@@ -227,7 +227,7 @@ void mqtt_init_ctx(MQTTCtx* mqttCtx)
     mqttCtx->topic_name = kDefTopicName;
     mqttCtx->cmd_timeout_ms = DEFAULT_CMD_TIMEOUT_MS;
 #ifdef WOLFMQTT_V5
-    mqttCtx->max_packet_size = DEFAULT_MAX_PKT_SZ;
+    mqttCtx->max_packet_size = WOLFMQTT_MAX_PACKET_SIZE;
     mqttCtx->topic_alias = 1;
     mqttCtx->topic_alias_max = 1;
 #endif
