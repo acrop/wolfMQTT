@@ -1,0 +1,72 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "MQTT mqttclient",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/i686-pc-windows-msvc-14-Debug/bin/mqttclient.exe",
+      "args": ["-T", "-C", "2000", "-q", "0"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "PATH",
+          "value": "${env.PATH};${workspaceRoot}/../install-x86/bin"
+        }
+      ],
+      "console": "externalTerminal"
+    },
+    {
+      "name": "MQTT nbclient",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/i686-pc-windows-msvc-14-Debug/bin/nbclient.exe",
+      "args": ["-T", "-C", "2000", "-q", "0"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "PATH",
+          "value": "${env.PATH};${workspaceRoot}/../install-x86/bin"
+        }
+      ],
+      "console": "externalTerminal"
+    },
+    {
+      "name": "MQTT azureiothub",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/i686-pc-windows-msvc-14-Debug/bin/azureiothub.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "PATH",
+          "value": "${env.PATH};${workspaceRoot}/../install-x86/bin"
+        }
+      ],
+      "console": "externalTerminal"
+    },
+    {
+      "name": "MQTT multithread",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/i686-pc-windows-msvc-14-Debug/bin/multithread.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "PATH",
+          "value": "${env.PATH};${workspaceRoot}/../install-x86/bin"
+        }
+      ],
+      "console": "externalTerminal"
+    }
+  ]
+}
