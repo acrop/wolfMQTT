@@ -274,7 +274,7 @@ int wiot_test(MQTTCtx *mqttCtx)
     do {
         /* Try and read packet */
         rc = MqttClient_WaitMessage(&mqttCtx->client,
-                                            mqttCtx->cmd_timeout_ms);
+            ((word32)mqttCtx->keep_alive_sec) * 1000);
 
         /* check for test mode */
         if (mStopRead) {
