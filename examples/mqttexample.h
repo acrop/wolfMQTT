@@ -84,7 +84,7 @@
 #define DEFAULT_MESSAGE         "test"
 
 #ifdef WOLFMQTT_V5
-#define DEFAULT_MAX_PKT_SZ      1024*1024 /* The max MQTT control packet size
+#define WOLFMQTT_MAX_PKT_SZ     1024*1024 /* The max MQTT control packet size
                                              the client is willing to accept. */
 #define DEFAULT_SUB_ID          1 /* Sub ID starts at 1 */
 #define DEFAULT_SESS_EXP_INT    0xFFFFFFFF
