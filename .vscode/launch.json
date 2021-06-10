@@ -1,0 +1,110 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "MQTT mqttclient",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/i686-pc-windows-msvc-14-Debug/bin/mqttclient.exe",
+      "args": ["-T", "-C", "2000000", "-k", "6", "-q", "2"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "PATH",
+          "value": "${env.PATH};${workspaceRoot}/../install-x86/bin"
+        }
+      ],
+      "console": "externalTerminal"
+    },
+    {
+      "name": "MQTT nbclient",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/i686-pc-windows-msvc-14-Debug/bin/nbclient.exe",
+      "args": ["-C", "2000", "-q", "1"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "PATH",
+          "value": "${env.PATH};${workspaceRoot}/../install-x86/bin"
+        }
+      ],
+      "console": "externalTerminal"
+    },
+    {
+      "name": "MQTT nbclient(Linux)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/x64-linux-elf-glibc-9-Debug/bin/nbclient",
+      "args": ["-T", "-C", "2000", "-q", "1"],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+          {
+              "description": "Enable pretty-printing for gdb",
+              "text": "-enable-pretty-printing",
+              "ignoreFailures": true
+          }
+      ]
+    },
+    {
+      "name": "MQTT azureiothub",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/i686-pc-windows-msvc-14-Debug/bin/azureiothub.exe",
+      "args": [ "-T", "-q", "1"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "PATH",
+          "value": "${env.PATH};${workspaceRoot}/../install-x86/bin"
+        }
+      ],
+      "console": "externalTerminal"
+    },
+    {
+      "name": "MQTT multithread",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/i686-pc-windows-msvc-14-Debug/bin/multithread.exe",
+      "args": ["-T", "-C", "1000000", "-q", "2", "-h", "127.0.0.1"], // "broker-cn.emqx.io"
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "PATH",
+          "value": "${env.PATH};${workspaceRoot}/../install-x86/bin"
+        }
+      ],
+      "console": "externalTerminal"
+    },
+    {
+      "name": "MQTT multithread(Linux)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/x64-linux-elf-glibc-9-Debug/bin/multithread",
+      "args": ["-T", "-C", "200000", "-q", "1"],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+          {
+              "description": "Enable pretty-printing for gdb",
+              "text": "-enable-pretty-printing",
+              "ignoreFailures": true
+          }
+      ]
+    },
+  ]
+}

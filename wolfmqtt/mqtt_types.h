@@ -43,23 +43,6 @@
 
 #include "wolfmqtt/visibility.h"
 
-#ifdef _WIN32
-    #define USE_WINDOWS_API
-
-    /* Make sure a level of Win compatibility is defined */
-    #ifndef _WIN32_WINNT
-    #define _WIN32_WINNT 0x0501
-    #endif
-
-    /* Allow "unsafe" strncpy */
-    #ifndef _CRT_SECURE_NO_WARNINGS
-    #define _CRT_SECURE_NO_WARNINGS
-    #endif
-
-    /* Visual Studio build settings from wolfmqtt/vs_settings.h */
-    #include "wolfmqtt/vs_settings.h"
-#endif
-
 #ifdef WOLFMQTT_USER_SETTINGS
 #include "user_settings.h"
 #endif
