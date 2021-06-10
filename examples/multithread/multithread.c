@@ -410,7 +410,8 @@ static void *waitMessage_task(void *param)
 
     do {
         /* Try and read packet */
-        rc = MqttClient_WaitMessage(&mqttCtx->client, mqttCtx->cmd_timeout_ms);
+        rc = MqttClient_WaitMessage(&mqttCtx->client,
+            ((word32)mqttCtx->keep_alive_sec) * 1000);
 
     #ifdef WOLFMQTT_NONBLOCK
         if (rc == MQTT_CODE_CONTINUE)
