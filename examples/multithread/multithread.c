@@ -36,7 +36,7 @@
 /* Configuration */
 
 /* Maximum size for network read/write callbacks. There is also a v5 define that
-   describes the max MQTT control packet size, DEFAULT_MAX_PKT_SZ. */
+   describes the max MQTT control packet size, WOLFMQTT_MAX_PKT_SZ. */
 #define MAX_BUFFER_SIZE 1024
 #define TEST_MESSAGE    "test00"
 /* Number of publish tasks. Each will send a unique message to the broker. */
