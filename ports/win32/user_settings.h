@@ -1,63 +1,124 @@
-/* Template build settings for Visual Studio projects */
+/* Template build settings for Win32 */
 /* This is meant to be customized */
 
-#ifndef _WOLFMQTT_VS_SETTINGS_
-#define _WOLFMQTT_VS_SETTINGS_
-
-/* Don't include this if using autoconf cross-compile */
-#ifndef HAVE_CONFIG_H
+#ifndef _WOLFMQTT_USER_SETTINGS_
+#define _WOLFMQTT_USER_SETTINGS_
 
 /* TLS Support */
-#undef  ENABLE_MQTT_TLS
-#define ENABLE_MQTT_TLS
+#if !defined(ENABLE_MQTT_TLS)
+  #undef USE_WINDOWS_API
+  #if defined(_WIN32)
+    #define USE_WINDOWS_API
+  #endif
+#endif
+
+#ifdef ENABLE_MQTT_TLS
+#include "user_settings_ssl.h"
+#endif
 
 /* MQTT-SN Support */
-#undef  WOLFMQTT_SN
-#define WOLFMQTT_SN
+#undef WOLFMQTT_SN
+#if 1
+  #define WOLFMQTT_SN
+#endif
 
 /* MQTT v5.0 support */
-#undef  WOLFMQTT_V5
-#define WOLFMQTT_V5
+#undef WOLFMQTT_V5
+#if 1
+  #define WOLFMQTT_V5
+#endif
 
 /* Enable property callback support */
 #ifdef WOLFMQTT_V5
-    #undef  WOLFMQTT_PROPERTY_CB
+  /* If enable property callback */
+  #undef WOLFMQTT_PROPERTY_CB
+  #if 1
     #define WOLFMQTT_PROPERTY_CB
+  #endif
+  /* Max props count */
+  #undef WOLFMQTT_MAX_PROPS
+  #if 1
+    #define WOLFMQTT_MAX_PROPS 128
+  #endif
 #endif
 
 /* Non-blocking support */
-#undef  WOLFMQTT_NONBLOCK
-#define WOLFMQTT_NONBLOCK
+#undef WOLFMQTT_NONBLOCK
+#if 1
+  #define WOLFMQTT_NONBLOCK
+#endif
 
 /* Disable socket timeout code */
-#undef  WOLFMQTT_NO_TIMEOUT
-//#define WOLFMQTT_NO_TIMEOUT
+#undef WOLFMQTT_NO_TIMEOUT
+#if 0
+  #define WOLFMQTT_NO_TIMEOUT
+#endif
 
 /* Disconnect callback support */
-#undef  WOLFMQTT_DISCONNECT_CB
-#define WOLFMQTT_DISCONNECT_CB
+#undef WOLFMQTT_DISCONNECT_CB
+#if 1
+  #define WOLFMQTT_DISCONNECT_CB
+#endif
 
 /* Multi-threading */
-#undef  WOLFMQTT_MULTITHREAD
-#define WOLFMQTT_MULTITHREAD
+#undef WOLFMQTT_MULTITHREAD
+#if 1
+  #define WOLFMQTT_MULTITHREAD
+#endif
+
+/* User threading */
+#undef WOLFMQTT_USER_THREADING
+#if 0
+  #define WOLFMQTT_USER_THREADING
+#endif
+
+/* Disable STDIN/fgets capture for examples */
+#undef WOLFMQTT_NO_STDIN_CAP
+#if 0
+  #define WOLFMQTT_NO_STDIN_CAP
+#endif
 
 /* Debugging */
-#undef  DEBUG_WOLFMQTT
-#define DEBUG_WOLFMQTT
+#undef DEBUG_WOLFMQTT
+#if 0
+  #define DEBUG_WOLFMQTT
+#endif
 
-#undef  WOLFMQTT_DEBUG_CLIENT
-#define WOLFMQTT_DEBUG_CLIENT
+#undef WOLFMQTT_DEBUG_CLIENT
+#if 0
+  #define WOLFMQTT_DEBUG_CLIENT
+#endif
 
-#undef  WOLFMQTT_DEBUG_SOCKET
-#define WOLFMQTT_DEBUG_SOCKET
+#undef WOLFMQTT_DEBUG_SOCKET
+#if 0
+  #define WOLFMQTT_DEBUG_SOCKET
+#endif
 
-#undef  WOLFMQTT_DEBUG_THREAD
-#define WOLFMQTT_DEBUG_THREAD
+#undef WOLFMQTT_DEBUG_THREAD
+#if 0
+  #define WOLFMQTT_DEBUG_THREAD
+#endif
 
 /* Disable error strings */
-#undef  WOLFMQTT_NO_ERROR_STRINGS
-//#define WOLFMQTT_NO_ERROR_STRINGS
+#undef WOLFMQTT_NO_ERROR_STRINGS
+#if 0
+  #define WOLFMQTT_NO_ERROR_STRINGS
+#endif
 
-#endif /* !HAVE_CONFIG_H */
+#if defined(ENABLE_MQTT_TLS)
 
-#endif /* _WOLFMQTT_VS_SETTINGS_ */
+#undef ENABLE_AWSIOT_EXAMPLE
+#define ENABLE_AWSIOT_EXAMPLE
+
+#undef ENABLE_AZUREIOTHUB_EXAMPLE
+#define ENABLE_AZUREIOTHUB_EXAMPLE
+
+#undef ENABLE_FIRMWARE_EXAMPLE
+#define ENABLE_FIRMWARE_EXAMPLE
+
+#endif
+
+#undef HAVE_SOCKET
+#define HAVE_SOCKET
+
+#endif /* _WOLFMQTT_USER_SETTINGS_ */
