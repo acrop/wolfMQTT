@@ -1,0 +1,13 @@
+{
+  "files.autoGuessEncoding": true,
+  "C_Cpp.autoAddFileAssociations": false,
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+  "C_Cpp.formatting": "clangFormat",
+  "C_Cpp.configurationWarnings": "Disabled",
+  "cmake.generator": "Ninja",
+  "cmake.buildDirectory": "${workspaceRoot}/build/${buildKitTriple}-${buildKitVersionMajor}-${buildType}",
+  "cmake.configureArgs": [
+    "-DBUILD_SHARED_LIBS=ON",
+    "-DWOLFMQTT_EXAMPLES=yes",
+  ]
+}
