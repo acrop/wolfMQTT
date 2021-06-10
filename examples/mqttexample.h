@@ -149,9 +149,6 @@ typedef struct _MQTTCtx {
     int      max_packet_size;
 #endif
     word32 cmd_timeout_ms;
-#if defined(WOLFMQTT_NONBLOCK)
-    word32  start_sec; /* used for keep-alive */
-#endif
     word16 keep_alive_sec;
     word16 port;
 #ifdef WOLFMQTT_V5
@@ -181,10 +178,6 @@ int err_sys(const char* msg);
 
 int mqtt_tls_cb(MqttClient* client);
 word16 mqtt_get_packetid(void);
-
-#ifdef WOLFMQTT_NONBLOCK
-int mqtt_check_timeout(int rc, word32* start_sec, word32 timeout_sec);
-#endif
 
 int mqtt_file_load(const char* filePath, byte** fileBuf, int *fileLen);
 
