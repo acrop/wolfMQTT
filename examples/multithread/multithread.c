@@ -72,6 +72,7 @@ static wm_Sem mtLock; /* Protect "packetId" and "stop" */
 static wm_Sem pingSignal;
 
 static MQTTCtx gMqttCtx;
+static MQTTCtxExample gMqttExample;
 
 static word16 mqtt_get_packetid_threadsafe(void)
 {
@@ -288,7 +289,7 @@ static int multithread_test_init(MQTTCtx *mqttCtx)
         /* Send client id in LWT payload */
         mqttCtx->lwt_msg.qos = mqttCtx->qos;
         mqttCtx->lwt_msg.retain = 0;
-        mqttCtx->lwt_msg.topic_name = WOLFMQTT_TOPIC_NAME"lwttopic";
+        mqttCtx->lwt_msg.topic_name = mqttCtx->lwt_msg_topic_name;
         mqttCtx->lwt_msg.buffer = (byte*)mqttCtx->client_id;
         mqttCtx->lwt_msg.total_len =
           (word16)XSTRLEN(mqttCtx->client_id);
@@ -391,11 +392,12 @@ static void *subscribe_task(void *param)
     int rc = MQTT_CODE_SUCCESS;
     uint16_t i;
     MQTTCtx *mqttCtx = (MQTTCtx*)param;
+    MQTTCtxExample *mqttExample = mqttCtx->app_ctx;
 
     /* Build list of topics */
     XMEMSET(&mqttCtx->subscribe, 0, sizeof(MqttSubscribe));
     i = 0;
-    mqttCtx->topics[i].topic_filter = mqttCtx->topic_name;
+    mqttCtx->topics[i].topic_filter = mqttExample->topic_name;
     mqttCtx->topics[i].qos = mqttCtx->qos;
 
 #ifdef WOLFMQTT_V5
@@ -410,8 +412,7 @@ static void *subscribe_task(void *param)
 
     /* Subscribe Topic */
     mqttCtx->subscribe.packet_id = mqtt_get_packetid_threadsafe();
-    mqttCtx->subscribe.topic_count =
-            sizeof(mqttCtx->topics) / sizeof(MqttTopic);
+    mqttCtx->subscribe.topic_count = mqttCtx->topic_count;
     mqttCtx->subscribe.topics = mqttCtx->topics;
 
     for (;;) {
@@ -536,6 +537,7 @@ static void *publish_task(void *param)
     int rc;
     char buf[8] = { 0 };
     MQTTCtx *mqttCtx = (MQTTCtx*)param;
+    MQTTCtxExample *mqttExample = mqttCtx->app_ctx;
     MqttPublish publish;
 
 
@@ -545,7 +547,7 @@ static void *publish_task(void *param)
         publish.retain = 0;
         publish.qos = mqttCtx->qos;
         publish.duplicate = 0;
-        publish.topic_name = mqttCtx->topic_name;
+        publish.topic_name = mqttExample->topic_name;
         publish.packet_id = mqtt_get_packetid_threadsafe();
         XSTRNCPY(buf, TEST_MESSAGE, sizeof(buf));
         buf[4] = '0' + ((publish.packet_id / 100) % 10);
@@ -608,8 +610,7 @@ static int unsubscribe_do(MQTTCtx *mqttCtx)
     /* Unsubscribe Topics */
     XMEMSET(&mqttCtx->unsubscribe, 0, sizeof(MqttUnsubscribe));
     mqttCtx->unsubscribe.packet_id = mqtt_get_packetid_threadsafe();
-    mqttCtx->unsubscribe.topic_count =
-        sizeof(mqttCtx->topics) / sizeof(MqttTopic);
+    mqttCtx->unsubscribe.topic_count = mqttCtx->topic_count;
     mqttCtx->unsubscribe.topics = mqttCtx->topics;
 
     /* Unsubscribe Topics */
@@ -725,7 +726,7 @@ int main(int argc, char** argv)
     int rc;
 #ifdef WOLFMQTT_MULTITHREAD
     /* init defaults */
-    mqtt_init_ctx(&gMqttCtx);
+    mqtt_init_ctx(&gMqttCtx, &gMqttExample);
     gMqttCtx.app_name = "wolfMQTT multithread client";
 
     /* parse arguments */

@@ -79,15 +79,21 @@
 #define DEFAULT_CLIENT_ID       "WolfMQTTClient"
 #define WOLFMQTT_TOPIC_NAME     "wolfMQTT/example/"
 #define DEFAULT_TOPIC_NAME      WOLFMQTT_TOPIC_NAME"testTopic"
+#define DEFAULT_LWT_TOPIC_NAME  WOLFMQTT_TOPIC_NAME"lwttopic"
 #define DEFAULT_AUTH_METHOD    "EXTERNAL"
+#define DEFAULT_LWT_WILL_DELAY_INTERVAL 5
 #define PRINT_BUFFER_SIZE       80
+#define DEFAULT_TOPIC_ALIAS_MAX 16
 #define DEFAULT_MESSAGE         "test"
 
-#ifdef WOLFMQTT_V5
+#ifndef WOLFMQTT_MAX_PKT_SZ
 #define WOLFMQTT_MAX_PKT_SZ     1024*1024 /* The max MQTT control packet size
                                              the client is willing to accept. */
-#define DEFAULT_SUB_ID          1 /* Sub ID starts at 1 */
-#define DEFAULT_SESS_EXP_INT    0xFFFFFFFF
+#endif /* WOLFMQTT_MAX_PKT_SZ */
+
+/* Default MQTT host broker to use, when none is specified in the examples */
+#ifndef DEFAULT_MQTT_HOST
+#define DEFAULT_MQTT_HOST       "test.mosquitto.org" /* broker.hivemq.com */
 #endif
 
 /* MQTT Client state */
@@ -124,7 +130,8 @@ typedef struct _MQTTCtx {
     MqttMessage lwt_msg;
     MqttSubscribe subscribe;
     MqttUnsubscribe unsubscribe;
-    MqttTopic topics[1];
+    MqttTopic *topics;
+    word32 topic_count;
     MqttPublish publish;
     MqttDisconnect disconnect;
 #ifdef WOLFMQTT_SN
@@ -137,7 +144,7 @@ typedef struct _MQTTCtx {
     const char* host;
     const char* username;
     const char* password;
-    const char* topic_name;
+    const char* lwt_msg_topic_name;
     const char* message;
     const char* pub_file;
     const char* client_id;
@@ -159,16 +166,17 @@ typedef struct _MQTTCtx {
     word16 keep_alive_sec;
     word16 port;
 #ifdef WOLFMQTT_V5
-    word16  topic_alias;
-    word16  topic_alias_max; /* Server property */
+    /* Server property, client can set value, but finally will use the minimal value of these two */
+    word16  topic_alias_max;
 #endif
     byte    clean_session;
     byte    test_mode;
 #ifdef WOLFMQTT_V5
     byte    subId_not_avail; /* Server property */
     byte    enable_eauth; /* Enhanced authentication */
+    const char* auth_method; /* Auth method for enhanced authentication */
+    word32  lwt_will_delay_interval;
 #endif
-    unsigned int dynamicTopic:1;
     unsigned int dynamicClientId:1;
 #ifdef WOLFMQTT_NONBLOCK
     unsigned int useNonBlockMode:1; /* set to use non-blocking mode.
@@ -176,9 +184,17 @@ typedef struct _MQTTCtx {
 #endif
 } MQTTCtx;
 
+typedef struct MQTTCtxExample {
+    const char* topic_name;
+#ifdef WOLFMQTT_V5
+    word16  topic_alias;
+#endif
+    unsigned int dynamicTopic:1;
+    void* app_ctx; /* For storing application specific data */
+} MQTTCtxExample;
 
 void mqtt_show_usage(MQTTCtx* mqttCtx);
-void mqtt_init_ctx(MQTTCtx* mqttCtx);
+void mqtt_init_ctx(MQTTCtx* mqttCtx, MQTTCtxExample* example);
 void mqtt_free_ctx(MQTTCtx* mqttCtx);
 int mqtt_parse_args(MQTTCtx* mqttCtx, int argc, char** argv);
 int err_sys(const char* msg);

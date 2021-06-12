@@ -204,6 +204,7 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
 
 int fwclient_test(MQTTCtx *mqttCtx)
 {
+    MQTTCtxExample *mqttExample = mqttCtx->app_ctx;
     int rc = MQTT_CODE_SUCCESS, i;
 
     switch(mqttCtx->stat) {
@@ -282,7 +283,7 @@ int fwclient_test(MQTTCtx *mqttCtx)
                 /* Send client id in LWT payload */
                 mqttCtx->lwt_msg.qos = mqttCtx->qos;
                 mqttCtx->lwt_msg.retain = 0;
-                mqttCtx->lwt_msg.topic_name = FIRMWARE_TOPIC_NAME"lwttopic";
+                mqttCtx->lwt_msg.topic_name = mqttCtx->lwt_msg_topic_name;
                 mqttCtx->lwt_msg.buffer = (byte*)mqttCtx->client_id;
                 mqttCtx->lwt_msg.total_len = (word16)XSTRLEN(mqttCtx->client_id);
             }
@@ -317,13 +318,13 @@ int fwclient_test(MQTTCtx *mqttCtx)
             }
 
             /* Build list of topics */
-            mqttCtx->topics[0].topic_filter = mqttCtx->topic_name;
+            mqttCtx->topics[0].topic_filter = mqttExample->topic_name;
             mqttCtx->topics[0].qos = mqttCtx->qos;
 
             /* Subscribe Topic */
             XMEMSET(&mqttCtx->subscribe, 0, sizeof(MqttSubscribe));
             mqttCtx->subscribe.packet_id = mqtt_get_packetid();
-            mqttCtx->subscribe.topic_count = 1;
+            mqttCtx->subscribe.topic_count =  mqttCtx->topic_count;
             mqttCtx->subscribe.topics = mqttCtx->topics;
             mqttCtx->topics[0].topic_filter = FIRMWARE_TOPIC_NAME;
             mqttCtx->topics[0].qos = mqttCtx->qos;
@@ -495,12 +496,14 @@ exit:
         int rc;
     #ifdef ENABLE_FIRMWARE_EXAMPLE
         MQTTCtx mqttCtx;
+        MQTTCtxExample mqttExample;
 
         /* init defaults */
-        mqtt_init_ctx(&mqttCtx);
+        mqtt_init_ctx(&mqttCtx, &mqttExample);
         mqttCtx.app_name = "fwclient";
         mqttCtx.client_id = FIRMWARE_CLIIENT_ID;
-        mqttCtx.topic_name = FIRMWARE_TOPIC_NAME;
+        mqttCtx.lwt_msg_topic_name = FIRMWARE_TOPIC_NAME"lwttopic";
+        mqttExample.topic_name = FIRMWARE_TOPIC_NAME;
         mqttCtx.qos = FIRMWARE_MQTT_QOS;
         mqttCtx.pub_file = FIRMWARE_DEF_SAVE_AS;
 
