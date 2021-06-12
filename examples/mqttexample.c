@@ -30,7 +30,6 @@
 
 
 /* locals */
-static volatile word16 mPacketIdLast;
 static const char* kDefTopicName = DEFAULT_TOPIC_NAME;
 static const char* kDefClientId =  DEFAULT_CLIENT_ID;
 
@@ -463,14 +462,15 @@ int err_sys(const char* msg)
 }
 
 
-word16 mqtt_get_packetid(void)
+word16 mqtt_get_packetid(volatile word16 *package_id_last)
 {
     /* Check rollover */
-    if (mPacketIdLast >= MAX_PACKET_ID) {
-        mPacketIdLast = 0;
+    for (;;) {
+        word16 package_id = (*package_id_last)++;
+        if (package_id != 0) {
+            return package_id;
+        }
     }
-
-    return ++mPacketIdLast;
 }
 
 #ifdef ENABLE_MQTT_TLS

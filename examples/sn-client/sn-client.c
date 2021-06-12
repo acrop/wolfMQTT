@@ -194,7 +194,7 @@ int sn_test(MQTTCtx *mqttCtx)
         SN_Register regist_s, *regist = &regist_s;
 
         XMEMSET(regist, 0, sizeof(SN_Register));
-        regist->packet_id = mqtt_get_packetid();
+        regist->packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
         regist->topicName = DEFAULT_TOPIC_NAME;
 
         PRINTF("MQTT-SN Register: topic = %s", regist->topicName);
@@ -218,7 +218,7 @@ int sn_test(MQTTCtx *mqttCtx)
         subscribe.qos = MQTT_QOS_0;
         subscribe.topic_type = SN_TOPIC_ID_TYPE_NORMAL;
         subscribe.topicNameId = DEFAULT_TOPIC_NAME;
-        subscribe.packet_id = mqtt_get_packetid();
+        subscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
 
         PRINTF("MQTT-SN Subscribe: topic name = %s", subscribe.topicNameId);
         rc = SN_Client_Subscribe(&mqttCtx->client, &subscribe);
@@ -245,7 +245,7 @@ int sn_test(MQTTCtx *mqttCtx)
         subscribe.qos = MQTT_QOS_0;
         subscribe.topic_type = SN_TOPIC_ID_TYPE_NORMAL;
         subscribe.topicNameId = WOLFMQTT_TOPIC_NAME"#";
-        subscribe.packet_id = mqtt_get_packetid();
+        subscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
 
         PRINTF("MQTT-SN Subscribe: topic name = %s", subscribe.topicNameId);
         rc = SN_Client_Subscribe(&mqttCtx->client, &subscribe);
@@ -266,7 +266,7 @@ int sn_test(MQTTCtx *mqttCtx)
         /* Use the topic ID saved from the subscribe */
         mqttCtx->publishSN.topic_name = (char*)&topicID;
         if (mqttCtx->publishSN.qos > MQTT_QOS_0) {
-            mqttCtx->publishSN.packet_id = mqtt_get_packetid();
+            mqttCtx->publishSN.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
         }
         else {
             mqttCtx->publishSN.packet_id = 0x00;
@@ -376,7 +376,7 @@ int sn_test(MQTTCtx *mqttCtx)
         subscribe.qos = MQTT_QOS_0;
         subscribe.topic_type = SN_TOPIC_ID_TYPE_SHORT;
         subscribe.topicNameId = SHORT_TOPIC_NAME;
-        subscribe.packet_id = mqtt_get_packetid();
+        subscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
 
         PRINTF("MQTT-SN Subscribe Short Topic: topic ID = %s",
                 subscribe.topicNameId);
@@ -397,7 +397,7 @@ int sn_test(MQTTCtx *mqttCtx)
         publish.topic_type = SN_TOPIC_ID_TYPE_SHORT;
         publish.topic_name = SHORT_TOPIC_NAME;
         if (publish.qos > MQTT_QOS_0) {
-            publish.packet_id = mqtt_get_packetid();
+            publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
         }
         else {
             publish.packet_id = 0x00;
@@ -421,7 +421,7 @@ int sn_test(MQTTCtx *mqttCtx)
 
         unsub.topic_type = SN_TOPIC_ID_TYPE_SHORT;
         unsub.topicNameId = SHORT_TOPIC_NAME;
-        unsub.packet_id = mqtt_get_packetid();
+        unsub.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
 
         PRINTF("MQTT-SN Unsubscribe Short Topic: topic ID = %s",
                 unsub.topicNameId);
@@ -490,7 +490,7 @@ int sn_test(MQTTCtx *mqttCtx)
                 mqttCtx->publishSN.topic_type = SN_TOPIC_ID_TYPE_NORMAL;
                 mqttCtx->publishSN.topic_name = (char*)&topicID;
                 if (mqttCtx->publishSN.qos > MQTT_QOS_0) {
-                    mqttCtx->publishSN.packet_id = mqtt_get_packetid();
+                    mqttCtx->publishSN.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
                 }
                 else {
                     mqttCtx->publishSN.packet_id = 0x00;
@@ -539,7 +539,7 @@ int sn_test(MQTTCtx *mqttCtx)
 
         XMEMSET(&unsubscribe, 0, sizeof(SN_Unsubscribe));
         unsubscribe.topicNameId = mqttExample->topic_name;
-        unsubscribe.packet_id = mqtt_get_packetid();
+        unsubscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
 
         rc = SN_Client_Unsubscribe(&mqttCtx->client, &unsubscribe);
 

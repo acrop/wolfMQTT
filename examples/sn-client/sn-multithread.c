@@ -67,20 +67,10 @@ static word16 topicID;
     #define THREAD_EXIT(e)         pthread_exit((void*)e)
 #endif
 
-static wm_Sem packetIdLock; /* Protect access to mqtt_get_packetid() */
 static wm_Sem pingSignal;
 
 static MQTTCtx gMqttCtx;
 static MQTTCtxExample gMqttExample;
-
-static word16 mqtt_get_packetid_threadsafe(void)
-{
-    word16 packet_id;
-    wm_SemLock(&packetIdLock);
-    packet_id = mqtt_get_packetid();
-    wm_SemUnlock(&packetIdLock);
-    return packet_id;
-}
 
 #ifdef WOLFMQTT_DISCONNECT_CB
 /* callback indicates a network error occurred */
@@ -206,7 +196,7 @@ static int client_register(MQTTCtx *mqttCtx)
     PRINTF("MQTT-SN Set Register Callback: rc = %d", rc);
     if (rc == MQTT_CODE_SUCCESS) {
         XMEMSET(&regist, 0, sizeof(SN_Register));
-        regist.packet_id = mqtt_get_packetid_threadsafe();
+        regist.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
         regist.topicName = DEFAULT_TOPIC_NAME;
 
         PRINTF("MQTT-SN Register: topic = %s", regist.topicName);
@@ -232,13 +222,11 @@ static int multithread_test_init(MQTTCtx *mqttCtx)
     mNumMsgsRecvd = 0;
 
     /* Create a demo mutex for making packet id values */
-    rc = wm_SemInit(&packetIdLock);
     if (rc != 0) {
         client_exit(mqttCtx);
     }
     rc = wm_SemInit(&pingSignal);
     if (rc != 0) {
-        wm_SemFree(&packetIdLock);
         client_exit(mqttCtx);
     }
     wm_SemLock(&pingSignal); /* default to locked */
@@ -339,7 +327,6 @@ static int multithread_test_finish(MQTTCtx *mqttCtx)
     client_disconnect(mqttCtx);
 
     wm_SemFree(&pingSignal);
-    wm_SemFree(&packetIdLock);
 
     return mqttCtx->return_code;
 }
@@ -362,7 +349,7 @@ static void *subscribe_task(void *param)
     subscribe.qos = MQTT_QOS_0;
     subscribe.topic_type = SN_TOPIC_ID_TYPE_NORMAL;
     subscribe.topicNameId = WOLFMQTT_TOPIC_NAME"#";
-    subscribe.packet_id = mqtt_get_packetid_threadsafe();
+    subscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
 
     PRINTF("MQTT-SN Subscribe: topic name = %s", subscribe.topicNameId);
     rc = SN_Client_Subscribe(&mqttCtx->client, &subscribe);
@@ -415,7 +402,7 @@ static void *waitMessage_task(void *param)
                 mqttCtx->publishSN.topic_type = SN_TOPIC_ID_TYPE_NORMAL;
                 mqttCtx->publishSN.topic_name = (char*)&topicID;
                 if (mqttCtx->publishSN.qos > MQTT_QOS_0) {
-                    mqttCtx->publishSN.packet_id = mqtt_get_packetid();
+                    mqttCtx->publishSN.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
                 }
                 else {
                     mqttCtx->publishSN.packet_id = 0x00;
@@ -481,7 +468,7 @@ static void *publish_task(void *param)
     publish.topic_name = (char*)&topicID;
     if ((publish.qos == MQTT_QOS_1) ||
         (publish.qos == MQTT_QOS_2)) {
-        publish.packet_id = mqtt_get_packetid_threadsafe();
+        publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
     }
     else {
         publish.packet_id = 0x00;
@@ -543,7 +530,7 @@ static int unsubscribe_do(MQTTCtx *mqttCtx)
     /* Unsubscribe Topic */
     XMEMSET(&unsubscribe, 0, sizeof(SN_Unsubscribe));
     unsubscribe.topicNameId = mqttExample->topic_name;
-    unsubscribe.packet_id = mqtt_get_packetid_threadsafe();
+    unsubscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
 
     rc = SN_Client_Unsubscribe(&mqttCtx->client, &unsubscribe);
 
