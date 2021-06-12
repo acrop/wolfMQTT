@@ -226,6 +226,7 @@ void mqtt_init_ctx(MQTTCtx* mqttCtx, MQTTCtxExample* mqttExample)
     mqttCtx->app_ctx = mqttExample;
     mqttCtx->host = "127.0.0.1";
     mqttCtx->qos = DEFAULT_MQTT_QOS;
+    mqttCtx->tls_cb = mqtt_tls_cb;
     mqttCtx->clean_session = 1;
     mqttCtx->keep_alive_sec = DEFAULT_KEEP_ALIVE_SEC;
     mqttCtx->client_id = kDefClientId;
