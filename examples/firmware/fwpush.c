@@ -396,7 +396,7 @@ int fwpush_test(MQTTCtx *mqttCtx)
             mqttCtx->publish.qos = mqttCtx->qos;
             mqttCtx->publish.duplicate = 0;
             mqttCtx->publish.topic_name = mqttExample->topic_name;
-            mqttCtx->publish.packet_id = mqtt_get_packetid();
+            mqttCtx->publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
             mqttCtx->publish.buffer_len = FIRMWARE_MAX_BUFFER;
             mqttCtx->publish.buffer = (byte*)WOLFMQTT_MALLOC(FIRMWARE_MAX_BUFFER);
             if (mqttCtx->publish.buffer == NULL) {

@@ -73,15 +73,6 @@ static wm_Sem pingSignal;
 static MQTTCtx gMqttCtx;
 static MQTTCtxExample gMqttExample;
 
-static word16 mqtt_get_packetid_threadsafe(void)
-{
-    word16 packet_id;
-    wm_SemLock(&mtLock);
-    packet_id = mqtt_get_packetid();
-    wm_SemUnlock(&mtLock);
-    return packet_id;
-}
-
 static void mqtt_stop_set(void)
 {
     wm_SemLock(&mtLock);
@@ -411,7 +402,7 @@ static void *subscribe_task(void *param)
 #endif
 
     /* Subscribe Topic */
-    mqttCtx->subscribe.packet_id = mqtt_get_packetid_threadsafe();
+    mqttCtx->subscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
     mqttCtx->subscribe.topic_count = mqttCtx->topic_count;
     mqttCtx->subscribe.topics = mqttCtx->topics;
 
@@ -490,7 +481,7 @@ static void *waitMessage_task(void *param)
                 mqttCtx->publish.qos = mqttCtx->qos;
                 mqttCtx->publish.duplicate = 0;
                 mqttCtx->publish.topic_name = mqttCtx->topic_name;
-                mqttCtx->publish.packet_id = mqtt_get_packetid_threadsafe();
+                mqttCtx->publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
                 mqttCtx->publish.buffer = mqttCtx->rx_buf;
                 mqttCtx->publish.total_len = (word16)rc;
                 rc = MqttClient_Publish(&mqttCtx->client,
@@ -548,7 +539,7 @@ static void *publish_task(void *param)
         publish.qos = mqttCtx->qos;
         publish.duplicate = 0;
         publish.topic_name = mqttExample->topic_name;
-        publish.packet_id = mqtt_get_packetid_threadsafe();
+        publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
         XSTRNCPY(buf, TEST_MESSAGE, sizeof(buf));
         buf[4] = '0' + ((publish.packet_id / 100) % 10);
         buf[5] = '0' + ((publish.packet_id / 10) % 10);
@@ -578,7 +569,7 @@ static int unsubscribe_do(MQTTCtx *mqttCtx)
 
     /* Unsubscribe Topics */
     XMEMSET(&mqttCtx->unsubscribe, 0, sizeof(MqttUnsubscribe));
-    mqttCtx->unsubscribe.packet_id = mqtt_get_packetid_threadsafe();
+    mqttCtx->unsubscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
     mqttCtx->unsubscribe.topic_count = mqttCtx->topic_count;
     mqttCtx->unsubscribe.topics = mqttCtx->topics;
 

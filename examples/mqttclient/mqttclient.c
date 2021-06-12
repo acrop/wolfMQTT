@@ -393,7 +393,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
 #endif
 
     /* Subscribe Topic */
-    mqttCtx->subscribe.packet_id = mqtt_get_packetid();
+    mqttCtx->subscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
     mqttCtx->subscribe.topic_count = mqttCtx->topic_count;
     mqttCtx->subscribe.topics = mqttCtx->topics;
 
@@ -424,7 +424,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
     mqttCtx->publish.qos = mqttCtx->qos;
     mqttCtx->publish.duplicate = 0;
     mqttCtx->publish.topic_name = mqttExample->topic_name;
-    mqttCtx->publish.packet_id = mqtt_get_packetid();
+    mqttCtx->publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
 
     if (mqttCtx->pub_file) {
         /* If a file is specified, then read into the allocated buffer */
@@ -524,7 +524,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
                 mqttCtx->publish.qos = mqttCtx->qos;
                 mqttCtx->publish.duplicate = 0;
                 mqttCtx->publish.topic_name = mqttCtx->topic_name;
-                mqttCtx->publish.packet_id = mqtt_get_packetid();
+                mqttCtx->publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
                 mqttCtx->publish.buffer = mqttCtx->rx_buf;
                 mqttCtx->publish.total_len = (word16)rc;
                 rc = MqttClient_Publish(&mqttCtx->client,
@@ -550,7 +550,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
 
     /* Unsubscribe Topics */
     XMEMSET(&mqttCtx->unsubscribe, 0, sizeof(MqttUnsubscribe));
-    mqttCtx->unsubscribe.packet_id = mqtt_get_packetid();
+    mqttCtx->unsubscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
     mqttCtx->unsubscribe.topic_count = mqttCtx->topic_count;
     mqttCtx->unsubscribe.topics = mqttCtx->topics;
 

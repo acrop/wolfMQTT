@@ -144,6 +144,7 @@ typedef struct _MQTTCtx {
     int client_id_buf_size;
 
     byte *tx_buf, *rx_buf;
+    volatile word16 package_id_last;
     int return_code;
     int use_tls;
     int retain;
@@ -190,7 +191,7 @@ int mqtt_parse_args(MQTTCtx* mqttCtx, int argc, char** argv);
 int err_sys(const char* msg);
 
 int mqtt_tls_cb(MqttClient* client);
-word16 mqtt_get_packetid(void);
+word16 mqtt_get_packetid(volatile word16 *package_id_last);
 
 int mqtt_file_load(const char* filePath, byte** fileBuf, int *fileLen);
 

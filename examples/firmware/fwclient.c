@@ -323,7 +323,7 @@ int fwclient_test(MQTTCtx *mqttCtx)
 
             /* Subscribe Topic */
             XMEMSET(&mqttCtx->subscribe, 0, sizeof(MqttSubscribe));
-            mqttCtx->subscribe.packet_id = mqtt_get_packetid();
+            mqttCtx->subscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
             mqttCtx->subscribe.topic_count =  mqttCtx->topic_count;
             mqttCtx->subscribe.topics = mqttCtx->topics;
             mqttCtx->topics[0].topic_filter = FIRMWARE_TOPIC_NAME;
