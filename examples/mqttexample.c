@@ -225,6 +225,7 @@ void mqtt_init_ctx(MQTTCtx* mqttCtx)
     mqttCtx->keep_alive_sec = DEFAULT_KEEP_ALIVE_SEC;
     mqttCtx->client_id = kDefClientId;
     mqttCtx->topic_name = kDefTopicName;
+    mqttCtx->connect_timeout_ms = DEFAULT_CON_TIMEOUT_MS;
     mqttCtx->cmd_timeout_ms = DEFAULT_CMD_TIMEOUT_MS;
 #ifdef WOLFMQTT_V5
     mqttCtx->max_packet_size = WOLFMQTT_MAX_PACKET_SIZE;
