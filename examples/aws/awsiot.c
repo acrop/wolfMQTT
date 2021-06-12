@@ -337,7 +337,7 @@ int awsiot_test(MQTTCtx *mqttCtx)
 
             /* Connect to broker */
             rc = MqttClient_NetConnect(&mqttCtx->client, mqttCtx->host, mqttCtx->port,
-                DEFAULT_CON_TIMEOUT_MS, mqttCtx->use_tls, mqtt_aws_tls_cb);
+                mqttCtx->connect_timeout_ms, mqttCtx->use_tls, mqtt_aws_tls_cb);
             if (rc == MQTT_CODE_CONTINUE) {
                 return rc;
             }
