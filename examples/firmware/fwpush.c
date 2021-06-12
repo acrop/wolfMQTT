@@ -319,6 +319,7 @@ int fwpush_test(MQTTCtx *mqttCtx)
 {
     int rc;
     FwpushCBdata* cbData = NULL;
+    MQTTCtxExample *mqttExample = mqttCtx->app_ctx;
 
     if (mqttCtx == NULL) {
         return MQTT_CODE_ERROR_BAD_ARG;
@@ -416,7 +417,7 @@ int fwpush_test(MQTTCtx *mqttCtx)
                 /* Send client id in LWT payload */
                 mqttCtx->lwt_msg.qos = mqttCtx->qos;
                 mqttCtx->lwt_msg.retain = 0;
-                mqttCtx->lwt_msg.topic_name = FIRMWARE_TOPIC_NAME"lwttopic";
+                mqttCtx->lwt_msg.topic_name = mqttCtx->lwt_msg_topic_name;
                 mqttCtx->lwt_msg.buffer = (byte*)mqttCtx->client_id;
                 mqttCtx->lwt_msg.total_len =
                         (word16)XSTRLEN(mqttCtx->client_id);
@@ -460,7 +461,7 @@ int fwpush_test(MQTTCtx *mqttCtx)
             mqttCtx->publish.retain = mqttCtx->retain;
             mqttCtx->publish.qos = mqttCtx->qos;
             mqttCtx->publish.duplicate = 0;
-            mqttCtx->publish.topic_name = mqttCtx->topic_name;
+            mqttCtx->publish.topic_name = mqttExample->topic_name;
             mqttCtx->publish.packet_id = mqtt_get_packetid();
             mqttCtx->publish.buffer_len = FIRMWARE_MAX_BUFFER;
             mqttCtx->publish.buffer = (byte*)WOLFMQTT_MALLOC(FIRMWARE_MAX_BUFFER);
@@ -626,12 +627,13 @@ exit:
         int rc;
     #ifdef ENABLE_FIRMWARE_EXAMPLE
         MQTTCtx mqttCtx;
+        MQTTCtxExample mqttExample;
 
         /* init defaults */
-        mqtt_init_ctx(&mqttCtx);
+        mqtt_init_ctx(&mqttCtx, &mqttExample);
         mqttCtx.app_name = "fwpush";
         mqttCtx.client_id = FIRMWARE_PUSH_CLIENT_ID;
-        mqttCtx.topic_name = FIRMWARE_TOPIC_NAME;
+        mqttExample.topic_name = FIRMWARE_TOPIC_NAME;
         mqttCtx.qos = FIRMWARE_MQTT_QOS;
         mqttCtx.pub_file = FIRMWARE_PUSH_DEF_FILE;
 

@@ -167,9 +167,10 @@ int main(int argc, char** argv)
     int rc;
 #ifdef WOLFMQTT_SN
     MQTTCtx mqttCtx;
+    MQTTCtxExample mqttExample;
 
     /* init defaults */
-    mqtt_init_ctx(&mqttCtx);
+    mqtt_init_ctx(&mqttCtx, &mqttExample);
     mqttCtx.app_name = "sn-client_qos-1";
 
     /* Settings for MQTT-SN gateway */
