@@ -407,7 +407,7 @@ int awsiot_test(MQTTCtx *mqttCtx)
 
             /* Subscribe Topic */
             XMEMSET(&mqttCtx->subscribe, 0, sizeof(MqttSubscribe));
-            mqttCtx->subscribe.packet_id = mqtt_get_packetid();
+            mqttCtx->subscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
             mqttCtx->subscribe.topic_count = mqttCtx->topic_count;
             mqttCtx->subscribe.topics = mqttCtx->topics;
 
@@ -446,7 +446,7 @@ int awsiot_test(MQTTCtx *mqttCtx)
             mqttCtx->publish.qos = mqttCtx->qos;
             mqttCtx->publish.duplicate = 0;
             mqttCtx->publish.topic_name = AWSIOT_PUBLISH_TOPIC;
-            mqttCtx->publish.packet_id = mqtt_get_packetid();
+            mqttCtx->publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
             mqttCtx->publish.buffer = (byte*)mqttExample->app_ctx;
             mqttCtx->publish.total_len = (word32)XSTRLEN((char*)mqttExample->app_ctx);
 
@@ -510,7 +510,7 @@ int awsiot_test(MQTTCtx *mqttCtx)
                         mqttCtx->publish.qos = mqttCtx->qos;
                         mqttCtx->publish.duplicate = 0;
                         mqttCtx->publish.topic_name = AWSIOT_PUBLISH_TOPIC;
-                        mqttCtx->publish.packet_id = mqtt_get_packetid();
+                        mqttCtx->publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
                         mqttCtx->publish.buffer = (byte*)mqttExample->app_ctx;
                         mqttCtx->publish.total_len = (word32)XSTRLEN((char*)mqttExample->app_ctx);
                         rc = MqttClient_Publish(&mqttCtx->client, &mqttCtx->publish);

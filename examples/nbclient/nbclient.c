@@ -248,7 +248,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
             mqttCtx->topics[i].qos = mqttCtx->qos;
 
             /* Subscribe Topic */
-            mqttCtx->subscribe.packet_id = mqtt_get_packetid();
+            mqttCtx->subscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
             mqttCtx->subscribe.topic_count = mqttCtx->topic_count;
             mqttCtx->subscribe.topics = mqttCtx->topics;
 
@@ -284,7 +284,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
             mqttCtx->publish.qos = mqttCtx->qos;
             mqttCtx->publish.duplicate = 0;
             mqttCtx->publish.topic_name = mqttExample->topic_name;
-            mqttCtx->publish.packet_id = mqtt_get_packetid();
+            mqttCtx->publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
             mqttCtx->publish.buffer = (byte*)TEST_MESSAGE;
             mqttCtx->publish.total_len = (word16)XSTRLEN(TEST_MESSAGE);
 
@@ -351,7 +351,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
 
             /* Unsubscribe Topics */
             XMEMSET(&mqttCtx->unsubscribe, 0, sizeof(MqttUnsubscribe));
-            mqttCtx->unsubscribe.packet_id = mqtt_get_packetid();
+            mqttCtx->unsubscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
             mqttCtx->unsubscribe.topic_count = mqttCtx->topic_count;
             mqttCtx->unsubscribe.topics = mqttCtx->topics;
 
