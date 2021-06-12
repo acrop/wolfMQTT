@@ -126,6 +126,7 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
 
 int wiot_test(MQTTCtx *mqttCtx)
 {
+    MQTTCtxExample *mqttExample = mqttCtx->app_ctx;
     int rc = MQTT_CODE_SUCCESS, i;
 
     PRINTF("MQTT Client: QoS %d, Use TLS %d", mqttCtx->qos, mqttCtx->use_tls);
@@ -191,7 +192,7 @@ int wiot_test(MQTTCtx *mqttCtx)
         /* Send client id in LWT payload */
         mqttCtx->lwt_msg.qos = mqttCtx->qos;
         mqttCtx->lwt_msg.retain = 0;
-        mqttCtx->lwt_msg.topic_name = WOLFMQTT_TOPIC_NAME"lwttopic";
+        mqttCtx->lwt_msg.topic_name = mqttCtx->lwt_msg_topic_name;
         mqttCtx->lwt_msg.buffer = (byte*)mqttCtx->client_id;
         mqttCtx->lwt_msg.total_len = (word16)XSTRLEN(mqttCtx->client_id);
     }
@@ -218,13 +219,13 @@ int wiot_test(MQTTCtx *mqttCtx)
     );
 
     /* Build list of topics */
-    mqttCtx->topics[0].topic_filter = mqttCtx->topic_name;
+    mqttCtx->topics[0].topic_filter = mqttExample->topic_name;
     mqttCtx->topics[0].qos = mqttCtx->qos;
 
     /* Subscribe Topic */
     XMEMSET(&mqttCtx->subscribe, 0, sizeof(MqttSubscribe));
     mqttCtx->subscribe.packet_id = mqtt_get_packetid();
-    mqttCtx->subscribe.topic_count = sizeof(mqttCtx->topics)/sizeof(MqttTopic);
+    mqttCtx->subscribe.topic_count = mqttCtx->topic_count;
     mqttCtx->subscribe.topics = mqttCtx->topics;
 #ifdef WIOT_USE_QUICKSTART
     /* Print web site URL to monitor client activity */
@@ -255,7 +256,7 @@ int wiot_test(MQTTCtx *mqttCtx)
     mqttCtx->publish.retain = 0;
     mqttCtx->publish.qos = mqttCtx->qos;
     mqttCtx->publish.duplicate = 0;
-    mqttCtx->publish.topic_name = mqttCtx->topic_name;
+    mqttCtx->publish.topic_name = mqttExample->topic_name;
     mqttCtx->publish.packet_id = mqtt_get_packetid();
     mqttCtx->publish.buffer = (byte*)TEST_MESSAGE;
     mqttCtx->publish.total_len = (word16)XSTRLEN(TEST_MESSAGE);
@@ -323,8 +324,7 @@ int wiot_test(MQTTCtx *mqttCtx)
     /* Unsubscribe Topics */
     XMEMSET(&mqttCtx->unsubscribe, 0, sizeof(MqttUnsubscribe));
     mqttCtx->unsubscribe.packet_id = mqtt_get_packetid();
-    mqttCtx->unsubscribe.topic_count =
-        sizeof(mqttCtx->topics) / sizeof(MqttTopic);
+    mqttCtx->unsubscribe.topic_count = mqttCtx->topic_count;
     mqttCtx->unsubscribe.topics = mqttCtx->topics;
 
     /* Unsubscribe Topics */
@@ -393,13 +393,14 @@ int main(int argc, char** argv)
 {
     int rc;
     MQTTCtx mqttCtx;
+    MQTTCtxExample mqttExample;
 
     /* init defaults */
-    mqtt_init_ctx(&mqttCtx);
+    mqtt_init_ctx(&mqttCtx, &mqttExample);
     mqttCtx.app_name = "wiotclient";
     mqttCtx.host = WIOT_MQTT_HOST;
     mqttCtx.client_id = WIOT_CLIENT_ID;
-    mqttCtx.topic_name = WIOT_TOPIC_NAME;
+    mqttExample.topic_name = WIOT_TOPIC_NAME;
 #ifndef WIOT_USE_QUICKSTART
     mqttCtx.use_tls = 1;
     mqttCtx.username = WIOT_USER_NAME;
