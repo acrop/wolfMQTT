@@ -390,7 +390,7 @@ int azureiothub_test(MQTTCtx *mqttCtx)
 
             /* Subscribe Topic */
             XMEMSET(&mqttCtx->subscribe, 0, sizeof(MqttSubscribe));
-            mqttCtx->subscribe.packet_id = mqtt_get_packetid();
+            mqttCtx->subscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
             mqttCtx->subscribe.topic_count = mqttCtx->topic_count;
             mqttCtx->subscribe.topics = mqttCtx->topics;
 
@@ -425,7 +425,7 @@ int azureiothub_test(MQTTCtx *mqttCtx)
             mqttCtx->publish.qos = mqttCtx->qos;
             mqttCtx->publish.duplicate = 0;
             mqttCtx->publish.topic_name = AZURE_EVENT_TOPIC;
-            mqttCtx->publish.packet_id = mqtt_get_packetid();
+            mqttCtx->publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
             mqttCtx->publish.buffer = NULL;
             mqttCtx->publish.total_len = 0;
 
@@ -486,7 +486,7 @@ int azureiothub_test(MQTTCtx *mqttCtx)
                         mqttCtx->publish.qos = mqttCtx->qos;
                         mqttCtx->publish.duplicate = 0;
                         mqttCtx->publish.topic_name = AZURE_EVENT_TOPIC;
-                        mqttCtx->publish.packet_id = mqtt_get_packetid();
+                        mqttCtx->publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
                         mqttCtx->publish.buffer = mqttCtx->rx_buf;
                         mqttCtx->publish.total_len = (word16)rc;
 
