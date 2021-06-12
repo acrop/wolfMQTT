@@ -75,15 +75,9 @@
 
 /* Windows */
 #elif defined(USE_WINDOWS_API)
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-    #include <stdio.h>
+    #include <errno.h>
     #define SOCKET_T        SOCKET
-    #ifdef _WIN32
-        #define SOERROR_T int
-    #else
-        #define SOERROR_T char
-    #endif
+    #define SOERROR_T int
     #define SELECT_FD(fd)   (fd)
     #ifndef SOCKET_INVALID /* Do not redefine from wolfssl */
         #define SOCKET_INVALID  ((SOCKET_T)INVALID_SOCKET)
@@ -91,8 +85,186 @@
     #define SOCK_CLOSE      closesocket
     #define SOCK_SEND(s,b,l,f) send((s), (const char*)(b), (size_t)(l), (f))
     #define SOCK_RECV(s,b,l,f) recv((s), (char*)(b), (size_t)(l), (f))
-    #define GET_SOCK_ERROR(f,s,o,e) (e) = WSAGetLastError()
-    #define SOCK_EQ_ERROR(e) (((e) == WSAEWOULDBLOCK) || ((e) == WSAEINPROGRESS) || ((e) == 0))
+    #define GET_SOCK_ERROR(f,s,o,e) (e) = win32_get_errorno()
+#ifndef ESOCKTNOSUPPORT
+    #define ESOCKTNOSUPPORT 10000
+#endif
+#ifndef EPFNOSUPPORT
+    #define EPFNOSUPPORT  10001
+#endif
+#ifndef ESHUTDOWN
+    #define ESHUTDOWN  10002
+#endif
+#ifndef ETOOMANYREFS
+    #define ETOOMANYREFS 10003
+#endif
+#ifndef EHOSTDOWN
+    #define EHOSTDOWN 10004
+#endif
+#ifndef EPROCLIM
+    #define EPROCLIM 10005
+#endif
+#ifndef EUSERS
+    #define EUSERS 10006
+#endif
+#ifndef EDQUOT
+    #define EDQUOT 10007
+#endif
+#ifndef ESTALE
+    #define ESTALE 10008
+#endif
+#define EREMOTE 10009
+#define ESYSNOTREADY 10010
+#define ERNOTSUPPORTED 10011
+#define ENOTINITIALISED 10012
+#define EDISCON 10013
+#define ENOMORE 10014
+#define ECANCELLED 10015
+#define EINVALIDPROCTABLE 10016
+#define EINVALIDPROVIDER 10017
+#define EPROVIDERFAILEDINIT 10018
+#define ESYSCALLFAILURE 10019
+#define ESERVICE_NOT_FOUND 10020
+#define ETYPE_NOT_FOUND 10021
+#define E_NO_MORE 10022
+#define E_CANCELLED 10023
+#define EREFUSED 10024
+#define EHOST_NOT_FOUND 10025
+#define ETRY_AGAIN 10029
+#define ENO_RECOVERY 10030
+    static SOERROR_T win32_get_errorno(void) {
+        /* https://docs.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2 */
+        int e = WSAGetLastError();
+        switch (e) {
+        case 0:
+            return 0;
+        case WSAEINTR:
+            return EINTR;
+        case WSAEBADF:
+            return EBADF;
+        case WSAEACCES:
+            return EACCES;
+        case WSAEFAULT:
+            return EFAULT;
+        case WSAEINVAL:
+            return EINVAL;
+        case WSAEMFILE:
+            return EMFILE;
+        case WSAEWOULDBLOCK:
+            return EWOULDBLOCK;
+        case WSAEINPROGRESS:
+            return EINPROGRESS;
+        case WSAEALREADY:
+            return EALREADY;
+        case WSAENOTSOCK:
+            return ENOTSOCK;
+        case WSAEDESTADDRREQ:
+            return EDESTADDRREQ;
+        case WSAEMSGSIZE:
+            return EMSGSIZE;
+        case WSAEPROTOTYPE:
+            return EPROTOTYPE;
+        case WSAENOPROTOOPT:
+            return ENOPROTOOPT;
+        case WSAEPROTONOSUPPORT:
+            return EPROTONOSUPPORT;
+        case WSAESOCKTNOSUPPORT:
+            return ESOCKTNOSUPPORT;
+        case WSAEOPNOTSUPP:
+            return EOPNOTSUPP;
+        case WSAEPFNOSUPPORT:
+            return EPFNOSUPPORT;
+        case WSAEAFNOSUPPORT:
+            return EAFNOSUPPORT;
+        case WSAEADDRINUSE:
+            return EADDRINUSE;
+        case WSAEADDRNOTAVAIL:
+            return EADDRNOTAVAIL;
+        case WSAENETDOWN:
+            return ENETDOWN;
+        case WSAENETUNREACH:
+            return ENETUNREACH;
+        case WSAENETRESET:
+            return ENETRESET;
+        case WSAECONNABORTED:
+            return ECONNABORTED;
+        case WSAECONNRESET:
+            return ECONNRESET;
+        case WSAENOBUFS:
+            return ENOBUFS;
+        case WSAEISCONN:
+            return EISCONN;
+        case WSAENOTCONN:
+            return ENOTCONN;
+        case WSAESHUTDOWN:
+            return ESHUTDOWN;
+        case WSAETOOMANYREFS:
+            return ETOOMANYREFS;
+        case WSAETIMEDOUT:
+            return ETIMEDOUT;
+        case WSAECONNREFUSED:
+            return ECONNREFUSED;
+        case WSAELOOP:
+            return ELOOP;
+        case WSAENAMETOOLONG:
+            return ENAMETOOLONG;
+        case WSAEHOSTDOWN:
+            return EHOSTDOWN;
+        case WSAEHOSTUNREACH:
+            return EHOSTUNREACH;
+        case WSAENOTEMPTY:
+            return ENOTEMPTY;
+        case WSAEPROCLIM:
+            return EPROCLIM;
+        case WSAEUSERS:
+            return EUSERS;
+        case WSAEDQUOT:
+            return EDQUOT;
+        case WSAESTALE:
+            return ESTALE;
+        case WSAEREMOTE:
+            return EREMOTE;
+        case WSASYSNOTREADY:
+            return ESYSNOTREADY;
+        case WSAVERNOTSUPPORTED:
+            return ERNOTSUPPORTED;
+        case WSANOTINITIALISED:
+            return ENOTINITIALISED;
+        case WSAEDISCON:
+            return EDISCON;
+        case WSAENOMORE:
+            return ENOMORE;
+        case WSAECANCELLED:
+            return ECANCELLED;
+        case WSAEINVALIDPROCTABLE:
+            return EINVALIDPROCTABLE;
+        case WSAEINVALIDPROVIDER:
+            return EINVALIDPROVIDER;
+        case WSAEPROVIDERFAILEDINIT:
+            return EPROVIDERFAILEDINIT;
+        case WSASYSCALLFAILURE:
+            return ESYSCALLFAILURE;
+        case WSASERVICE_NOT_FOUND:
+            return ESERVICE_NOT_FOUND;
+        case WSATYPE_NOT_FOUND:
+            return ETYPE_NOT_FOUND;
+        case WSA_E_NO_MORE:
+            return E_NO_MORE;
+        case WSA_E_CANCELLED:
+            return E_CANCELLED;
+        case WSAEREFUSED:
+            return EREFUSED;
+        case WSAHOST_NOT_FOUND:
+            return EHOST_NOT_FOUND;
+        case WSATRY_AGAIN:
+            return ETRY_AGAIN;
+        case WSANO_RECOVERY:
+            return ENO_RECOVERY;
+        default:
+            return ENOTSUP;
+        }
+        WSASetLastError(0);
+    }
 
 /* Freescale MQX / RTCS */
 #elif defined(FREESCALE_MQX) || defined(FREESCALE_KSDK_MQX)
@@ -195,13 +367,19 @@
         SOERROR_T __saved_errno = errno; \
         socklen_t len = sizeof(so_error); \
         SOCK_GETSOCKOPT((f), (s), (o), &(e), &len); \
+        errno = 0; \
         if (e == 0) { \
             e = __saved_errno; \
         } \
     }
 #endif
 #ifndef SOCK_EQ_ERROR
-    #define SOCK_EQ_ERROR(e) (((e) == EWOULDBLOCK) || ((e) == EAGAIN) || ((e) == EINPROGRESS))
+    #define SOCK_EQ_ERROR(e) ( \
+       ((e) == EWOULDBLOCK) \
+    || ((e) == EAGAIN) \
+    || ((e) == EINPROGRESS) \
+    || ((e) == ENOTCONN) \
+    )
 #endif
 /* Local context for Net callbacks */
 typedef enum {
@@ -735,7 +913,7 @@ static int NetConnect(void *context, const char* host, word16 port,
 
 exit:
     /* Show error */
-    if (rc != 0 && rc != MQTT_CODE_CONTINUE) {
+    if (rc != 0 && rc != MQTT_CODE_CONTINUE && rc != MQTT_CODE_ERROR_ROUTE_TO_HOST) {
         PRINTF("NetConnect: Rc=%d, SoErr=%d", rc, so_error);
     }
 
@@ -844,7 +1022,12 @@ static int NetHandleReadWriteError(SOCKET_T fd) {
     }
 #endif
     if (so_error == 0) {
-        return 0; /* Handle signal */
+#ifdef USE_WINDOWS_API
+        return 0;
+#else
+        PRINTF("NetReadWrite: Error aborted %d", so_error);
+        return MQTT_CODE_ERROR_NETWORK;
+#endif
     }
     PRINTF("NetReadWrite: Error %d", so_error);
     return MQTT_CODE_ERROR_NETWORK;
