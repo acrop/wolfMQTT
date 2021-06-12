@@ -136,6 +136,7 @@ typedef struct _MQTTCtx {
 #ifdef WOLFMQTT_V5
     word32 max_packet_size;
 #endif
+    word32 connect_timeout_ms;
     word32 cmd_timeout_ms;
     word16 keep_alive_sec;
     word16 port;
