@@ -105,6 +105,7 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
 
 int mqttclient_test(MQTTCtx *mqttCtx)
 {
+    MQTTCtxExample *mqttExample = mqttCtx->app_ctx;
     int rc = MQTT_CODE_SUCCESS, i;
 
     switch (mqttCtx->stat) {
@@ -202,7 +203,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
                 /* Send client id in LWT payload */
                 mqttCtx->lwt_msg.qos = mqttCtx->qos;
                 mqttCtx->lwt_msg.retain = 0;
-                mqttCtx->lwt_msg.topic_name = WOLFMQTT_TOPIC_NAME"lwttopic";
+                mqttCtx->lwt_msg.topic_name = mqttCtx->lwt_msg_topic_name;
                 mqttCtx->lwt_msg.buffer = (byte*)mqttCtx->client_id;
                 mqttCtx->lwt_msg.total_len =
                   (word16)XSTRLEN(mqttCtx->client_id);
@@ -241,13 +242,12 @@ int mqttclient_test(MQTTCtx *mqttCtx)
             XMEMSET(&mqttCtx->subscribe, 0, sizeof(MqttSubscribe));
 
             i = 0;
-            mqttCtx->topics[i].topic_filter = mqttCtx->topic_name;
+            mqttCtx->topics[i].topic_filter = mqttExample->topic_name;
             mqttCtx->topics[i].qos = mqttCtx->qos;
 
             /* Subscribe Topic */
             mqttCtx->subscribe.packet_id = mqtt_get_packetid();
-            mqttCtx->subscribe.topic_count =
-                    sizeof(mqttCtx->topics) / sizeof(MqttTopic);
+            mqttCtx->subscribe.topic_count = mqttCtx->topic_count;
             mqttCtx->subscribe.topics = mqttCtx->topics;
         }
         FALL_THROUGH;
@@ -280,7 +280,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
             mqttCtx->publish.retain = 0;
             mqttCtx->publish.qos = mqttCtx->qos;
             mqttCtx->publish.duplicate = 0;
-            mqttCtx->publish.topic_name = mqttCtx->topic_name;
+            mqttCtx->publish.topic_name = mqttExample->topic_name;
             mqttCtx->publish.packet_id = mqtt_get_packetid();
 
             if (mqttCtx->pub_file) {
@@ -370,8 +370,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
             /* Unsubscribe Topics */
             XMEMSET(&mqttCtx->unsubscribe, 0, sizeof(MqttUnsubscribe));
             mqttCtx->unsubscribe.packet_id = mqtt_get_packetid();
-            mqttCtx->unsubscribe.topic_count =
-                sizeof(mqttCtx->topics) / sizeof(MqttTopic);
+            mqttCtx->unsubscribe.topic_count = mqttCtx->topic_count;
             mqttCtx->unsubscribe.topics = mqttCtx->topics;
 
             mqttCtx->stat = WMQ_UNSUB;
@@ -496,9 +495,10 @@ exit:
         int rc;
 #ifdef WOLFMQTT_NONBLOCK
         MQTTCtx mqttCtx;
+        MQTTCtxExample mqttExample;
 
         /* init defaults */
-        mqtt_init_ctx(&mqttCtx);
+        mqtt_init_ctx(&mqttCtx, &mqttExample);
         mqttCtx.app_name = "nbclient";
         mqttCtx.message = DEFAULT_MESSAGE;
 
