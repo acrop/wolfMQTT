@@ -38,6 +38,8 @@ static const char* kDefClientId =  DEFAULT_CLIENT_ID;
 static int myoptind = 0;
 static char* myoptarg = NULL;
 
+static MqttTopic topics[1];
+
 #ifdef ENABLE_MQTT_TLS
 static const char* mTlsCaFile;
 static const char* mTlsCertFile;
@@ -172,6 +174,7 @@ static char* mqtt_append_random(const char* inStr, word32 inLen)
 
 void mqtt_show_usage(MQTTCtx* mqttCtx)
 {
+    MQTTCtxExample *mqttExample = mqttCtx->app_ctx;
     PRINTF("%s:", mqttCtx->app_name);
     PRINTF("-?          Help, print this usage");
     PRINTF("-h <host>   Host to connect to, default: %s",
@@ -201,7 +204,7 @@ void mqtt_show_usage(MQTTCtx* mqttCtx)
         /* Only mqttclient example can set message from CLI */
         PRINTF("-m <str>    Message, default: %s", mqttCtx->message);
     }
-    PRINTF("-n <str>    Topic name, default: %s", mqttCtx->topic_name);
+    PRINTF("-n <str>    Topic name, default: %s", mqttExample->topic_name);
     PRINTF("-r          Set Retain flag on publish message");
     PRINTF("-C <num>    Command Timeout, default: %dms",
             mqttCtx->cmd_timeout_ms);
@@ -216,26 +219,34 @@ void mqtt_show_usage(MQTTCtx* mqttCtx)
     }
 }
 
-void mqtt_init_ctx(MQTTCtx* mqttCtx)
+void mqtt_init_ctx(MQTTCtx* mqttCtx, MQTTCtxExample* mqttExample)
 {
     XMEMSET(mqttCtx, 0, sizeof(MQTTCtx));
+    XMEMSET(mqttExample, 0, sizeof(MQTTCtxExample));
+    mqttCtx->app_ctx = mqttExample;
     mqttCtx->host = "127.0.0.1";
     mqttCtx->qos = DEFAULT_MQTT_QOS;
     mqttCtx->clean_session = 1;
     mqttCtx->keep_alive_sec = DEFAULT_KEEP_ALIVE_SEC;
     mqttCtx->client_id = kDefClientId;
-    mqttCtx->topic_name = kDefTopicName;
+    mqttCtx->lwt_msg_topic_name = DEFAULT_LWT_TOPIC_NAME;
+    mqttCtx->topics = topics;
+    mqttCtx->topic_count = sizeof(topics) / sizeof(topics[0]);
+    mqttExample->topic_name = kDefTopicName;
     mqttCtx->connect_timeout_ms = DEFAULT_CON_TIMEOUT_MS;
     mqttCtx->cmd_timeout_ms = DEFAULT_CMD_TIMEOUT_MS;
 #ifdef WOLFMQTT_V5
+    mqttCtx->auth_method = DEFAULT_AUTH_METHOD;
+    mqttCtx->lwt_will_delay_interval = DEFAULT_LWT_WILL_DELAY_INTERVAL;
     mqttCtx->max_packet_size = WOLFMQTT_MAX_PACKET_SIZE;
-    mqttCtx->topic_alias = 1;
-    mqttCtx->topic_alias_max = 1;
+    mqttCtx->topic_alias_max = DEFAULT_TOPIC_ALIAS_MAX;
+    mqttExample->topic_alias = 1;
 #endif
 }
 
 int mqtt_parse_args(MQTTCtx* mqttCtx, int argc, char** argv)
 {
+    MQTTCtxExample *mqttExample = mqttCtx->app_ctx;
     int rc;
 
     #ifdef ENABLE_MQTT_TLS
@@ -303,7 +314,7 @@ int mqtt_parse_args(MQTTCtx* mqttCtx, int argc, char** argv)
             break;
 
         case 'n':
-            mqttCtx->topic_name = myoptarg;
+            mqttExample->topic_name = myoptarg;
             break;
 
         case 'C':
@@ -367,12 +378,12 @@ int mqtt_parse_args(MQTTCtx* mqttCtx, int argc, char** argv)
 
     /* for test mode only */
     /* add random data to end of client_id and topic_name */
-    if (mqttCtx->test_mode && mqttCtx->topic_name == kDefTopicName) {
+    if (mqttCtx->test_mode && mqttExample->topic_name == kDefTopicName) {
         char* topic_name = mqtt_append_random(kDefTopicName,
                 (word32)XSTRLEN(kDefTopicName));
         if (topic_name) {
-            mqttCtx->topic_name = (const char*)topic_name;
-            mqttCtx->dynamicTopic = 1;
+            mqttExample->topic_name = (const char*)topic_name;
+            mqttExample->dynamicTopic = 1;
         }
     }
     if (mqttCtx->test_mode && mqttCtx->client_id == kDefClientId) {
@@ -389,13 +400,15 @@ int mqtt_parse_args(MQTTCtx* mqttCtx, int argc, char** argv)
 
 void mqtt_free_ctx(MQTTCtx* mqttCtx)
 {
+    MQTTCtxExample *mqttExample;
     if (mqttCtx == NULL) {
         return;
     }
 
-    if (mqttCtx->dynamicTopic && mqttCtx->topic_name) {
-        WOLFMQTT_FREE((char*)mqttCtx->topic_name);
-        mqttCtx->topic_name = NULL;
+    mqttExample = mqttCtx->app_ctx;
+    if (mqttExample->dynamicTopic && mqttExample->topic_name) {
+        WOLFMQTT_FREE((char*)mqttExample->topic_name);
+        mqttExample->topic_name = NULL;
     }
     if (mqttCtx->dynamicClientId && mqttCtx->client_id) {
         WOLFMQTT_FREE((char*)mqttCtx->client_id);
