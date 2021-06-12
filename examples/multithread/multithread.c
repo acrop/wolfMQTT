@@ -265,7 +265,7 @@ static int multithread_test_init(MQTTCtx *mqttCtx)
     /* Connect to broker */
     rc = MqttClient_NetConnect(&mqttCtx->client, mqttCtx->host,
            mqttCtx->port,
-        mqttCtx->connect_timeout_ms, mqttCtx->use_tls, mqtt_tls_cb);
+        mqttCtx->connect_timeout_ms, mqttCtx->use_tls, mqttCtx->tls_cb);
 
     PRINTF("MQTT Socket Connect: %s (%d)",
         MqttClient_ReturnCodeToString(rc), rc);

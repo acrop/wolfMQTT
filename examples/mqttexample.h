@@ -105,6 +105,7 @@ typedef struct _MQTTCtx {
     /* client and net containers */
     MqttClient client;
     MqttNet net;
+    MqttTlsCb tls_cb;
 
     /* temp mqtt containers */
     MqttConnect connect;
