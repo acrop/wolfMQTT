@@ -135,7 +135,7 @@ int sn_test(MQTTCtx *mqttCtx)
 
     /* Setup socket direct to gateway */
     rc = MqttClient_NetConnect(&mqttCtx->client, mqttCtx->host,
-           mqttCtx->port,DEFAULT_CON_TIMEOUT_MS,
+           mqttCtx->port,mqttCtx->connect_timeout_ms,
            mqttCtx->use_tls, mqtt_tls_cb);
 
     PRINTF("MQTT-SN Socket Connect: %s (%d)",
