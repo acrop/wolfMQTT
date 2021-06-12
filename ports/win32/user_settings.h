@@ -85,7 +85,7 @@
 #endif
 
 #undef WOLFMQTT_DEBUG_CLIENT
-#if 0
+#if 1
   #define WOLFMQTT_DEBUG_CLIENT
 #endif
 
