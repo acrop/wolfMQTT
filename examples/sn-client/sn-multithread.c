@@ -71,6 +71,7 @@ static wm_Sem packetIdLock; /* Protect access to mqtt_get_packetid() */
 static wm_Sem pingSignal;
 
 static MQTTCtx gMqttCtx;
+static MQTTCtxExample gMqttExample;
 
 static word16 mqtt_get_packetid_threadsafe(void)
 {
@@ -309,7 +310,7 @@ static int multithread_test_init(MQTTCtx *mqttCtx)
         /* Send client id in LWT payload */
         connect.will.qos = mqttCtx->qos;
         connect.will.retain = 0;
-        connect.will.willTopic = WOLFMQTT_TOPIC_NAME"lwttopic";
+        connect.will.willTopic = mqttCtx->lwt_msg_topic_name;
         connect.will.willMsg = (byte*)mqttCtx->client_id;
         connect.will.willMsgLen =
           (word16)XSTRLEN(mqttCtx->client_id);
@@ -536,12 +537,12 @@ static void *ping_task(void *param)
 static int unsubscribe_do(MQTTCtx *mqttCtx)
 {
     int rc;
-
+    MQTTCtxExample *mqttExample = (MQTTCtxExample *)mqttCtx->app_ctx;
     SN_Unsubscribe unsubscribe;
 
     /* Unsubscribe Topic */
     XMEMSET(&unsubscribe, 0, sizeof(SN_Unsubscribe));
-    unsubscribe.topicNameId = mqttCtx->topic_name;
+    unsubscribe.topicNameId = mqttExample->topic_name;
     unsubscribe.packet_id = mqtt_get_packetid_threadsafe();
 
     rc = SN_Client_Unsubscribe(&mqttCtx->client, &unsubscribe);
@@ -638,7 +639,7 @@ int main(int argc, char** argv)
     int rc;
 #if defined(WOLFMQTT_MULTITHREAD) && defined(WOLFMQTT_SN)
     /* init defaults */
-    mqtt_init_ctx(&gMqttCtx);
+    mqtt_init_ctx(&gMqttCtx, &gMqttExample);
     gMqttCtx.app_name = "wolfMQTT-SN multithread client";
     gMqttCtx.client_id = DEFAULT_CLIENT_ID"-SN-MT";
 

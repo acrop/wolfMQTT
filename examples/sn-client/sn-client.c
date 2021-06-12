@@ -99,6 +99,7 @@ static int sn_reg_callback(word16 topicId, const char* topicName, void *ctx)
 
 int sn_test(MQTTCtx *mqttCtx)
 {
+    MQTTCtxExample *mqttExample = (MQTTCtxExample *)mqttCtx->app_ctx;
     int rc = MQTT_CODE_SUCCESS;
     word16 topicID;
 
@@ -167,7 +168,7 @@ int sn_test(MQTTCtx *mqttCtx)
             /* Send client id in LWT payload */
             connect->will.qos = mqttCtx->qos;
             connect->will.retain = 0;
-            connect->will.willTopic = WOLFMQTT_TOPIC_NAME"lwttopic";
+            connect->will.willTopic = mqttCtx->lwt_msg_topic_name;
             connect->will.willMsg = (byte*)mqttCtx->client_id;
             connect->will.willMsgLen =
               (word16)XSTRLEN(mqttCtx->client_id);
@@ -537,7 +538,7 @@ int sn_test(MQTTCtx *mqttCtx)
         SN_Unsubscribe unsubscribe;
 
         XMEMSET(&unsubscribe, 0, sizeof(SN_Unsubscribe));
-        unsubscribe.topicNameId = DEFAULT_TOPIC_NAME;
+        unsubscribe.topicNameId = mqttExample->topic_name;
         unsubscribe.packet_id = mqtt_get_packetid();
 
         rc = SN_Client_Unsubscribe(&mqttCtx->client, &unsubscribe);
@@ -650,9 +651,10 @@ int main(int argc, char** argv)
     int rc;
 #ifdef WOLFMQTT_SN
     MQTTCtx mqttCtx;
+    MQTTCtxExample mqttExample;
 
     /* init defaults */
-    mqtt_init_ctx(&mqttCtx);
+    mqtt_init_ctx(&mqttCtx, &mqttExample);
     mqttCtx.app_name = "sn-client";
     mqttCtx.client_id = DEFAULT_CLIENT_ID"-SN";
 

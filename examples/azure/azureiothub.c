@@ -243,6 +243,7 @@ static int SasTokenCreate(char* sasToken, int sasTokenLen)
 
 int azureiothub_test(MQTTCtx *mqttCtx)
 {
+    MQTTCtxExample *mqttExample = mqttCtx->app_ctx;
     int rc = MQTT_CODE_SUCCESS, i;
 
     switch (mqttCtx->stat)
@@ -282,7 +283,7 @@ int azureiothub_test(MQTTCtx *mqttCtx)
             url_encoder_init();
 
             /* build sas token for password */
-            rc = SasTokenCreate((char*)mqttCtx->app_ctx, AZURE_TOKEN_SIZE);
+            rc = SasTokenCreate((char*)mqttExample->app_ctx, AZURE_TOKEN_SIZE);
             if (rc < 0) {
                 goto exit;
             }
@@ -347,14 +348,14 @@ int azureiothub_test(MQTTCtx *mqttCtx)
                 /* Send client id in LWT payload */
                 mqttCtx->lwt_msg.qos = mqttCtx->qos;
                 mqttCtx->lwt_msg.retain = 0;
-                mqttCtx->lwt_msg.topic_name = AZURE_EVENT_TOPIC"lwttopic";
+                mqttCtx->lwt_msg.topic_name = mqttCtx->lwt_msg_topic_name;
                 mqttCtx->lwt_msg.buffer = (byte*)mqttCtx->client_id;
                 mqttCtx->lwt_msg.total_len = (word16)XSTRLEN(mqttCtx->client_id);
             }
 
             /* Authentication */
             mqttCtx->connect.username = AZURE_USERNAME;
-            mqttCtx->connect.password = (const char *)mqttCtx->app_ctx;
+            mqttCtx->connect.password = (const char *)mqttExample->app_ctx;
 
             FALL_THROUGH;
         }
@@ -384,13 +385,13 @@ int azureiothub_test(MQTTCtx *mqttCtx)
             );
 
             /* Build list of topics */
-            mqttCtx->topics[0].topic_filter = mqttCtx->topic_name;
+            mqttCtx->topics[0].topic_filter = mqttExample->topic_name;
             mqttCtx->topics[0].qos = mqttCtx->qos;
 
             /* Subscribe Topic */
             XMEMSET(&mqttCtx->subscribe, 0, sizeof(MqttSubscribe));
             mqttCtx->subscribe.packet_id = mqtt_get_packetid();
-            mqttCtx->subscribe.topic_count = sizeof(mqttCtx->topics)/sizeof(MqttTopic);
+            mqttCtx->subscribe.topic_count = mqttCtx->topic_count;
             mqttCtx->subscribe.topics = mqttCtx->topics;
 
             FALL_THROUGH;
@@ -612,19 +613,20 @@ exit:
         int rc;
     #ifdef ENABLE_AZUREIOTHUB_EXAMPLE
         MQTTCtx mqttCtx;
+        MQTTCtxExample mqttExample;
         char sasToken[AZURE_TOKEN_SIZE] = {0};
 
         /* init defaults */
-        mqtt_init_ctx(&mqttCtx);
+        mqtt_init_ctx(&mqttCtx, &mqttExample);
         mqttCtx.app_name = "azureiothub";
         mqttCtx.host = AZURE_HOST;
         mqttCtx.qos = AZURE_QOS;
         mqttCtx.keep_alive_sec = AZURE_KEEP_ALIVE_SEC;
         mqttCtx.client_id = AZURE_DEVICE_ID;
-        mqttCtx.topic_name = AZURE_MSGS_TOPIC_NAME;
+        mqttExample.topic_name = AZURE_MSGS_TOPIC_NAME;
         mqttCtx.cmd_timeout_ms = AZURE_CMD_TIMEOUT_MS;
         mqttCtx.use_tls = 1;
-        mqttCtx.app_ctx = (void*)sasToken;
+        mqttExample.app_ctx = (void*)sasToken;
 
         /* parse arguments */
         rc = mqtt_parse_args(&mqttCtx, argc, argv);
