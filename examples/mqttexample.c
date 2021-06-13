@@ -236,6 +236,7 @@ void mqtt_init_ctx(MQTTCtx* mqttCtx, MQTTCtxExample* mqttExample)
     mqttExample->topic_name = kDefTopicName;
     mqttCtx->connect_timeout_ms = DEFAULT_CON_TIMEOUT_MS;
     mqttCtx->cmd_timeout_ms = DEFAULT_CMD_TIMEOUT_MS;
+    mqttCtx->enable_eauth = 0;
 #ifdef WOLFMQTT_V5
     mqttCtx->auth_method = DEFAULT_AUTH_METHOD;
     mqttCtx->lwt_will_delay_interval = DEFAULT_LWT_WILL_DELAY_INTERVAL;
