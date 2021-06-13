@@ -246,6 +246,7 @@ void mqtt_init_ctx(MQTTCtx* mqttCtx)
     mqttCtx->topic_name = kDefTopicName;
     mqttCtx->connect_timeout_ms = DEFAULT_CON_TIMEOUT_MS;
     mqttCtx->cmd_timeout_ms = DEFAULT_CMD_TIMEOUT_MS;
+    mqttCtx->enable_eauth = 0;
 #ifdef WOLFMQTT_V5
     mqttCtx->max_packet_size = WOLFMQTT_MAX_PKT_SZ;
     mqttCtx->topic_alias = 1;
