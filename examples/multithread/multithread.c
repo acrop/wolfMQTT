@@ -292,16 +292,67 @@ static int multithread_test_init(MQTTCtx *mqttCtx)
         mqttCtx->lwt_msg.buffer = (byte*)mqttCtx->client_id;
         mqttCtx->lwt_msg.total_len =
           (word16)XSTRLEN(mqttCtx->client_id);
+    #ifdef WOLFMQTT_V5
+        {
+            /* Add a delay to sending the LWT */
+            MqttProp* prop = MqttClient_PropsAdd(&mqttCtx->lwt_msg.props);
+            prop->type = MQTT_PROP_WILL_DELAY_INTERVAL;
+            prop->data_int = mqttCtx->lwt_will_delay_interval;
+        }
+    #endif
     }
     /* Optional authentication */
     mqttCtx->connect.username = mqttCtx->username;
     mqttCtx->connect.password = mqttCtx->password;
+#ifdef WOLFMQTT_V5
+    mqttCtx->client.packet_sz_max = mqttCtx->max_packet_size;
+    mqttCtx->client.enable_eauth = mqttCtx->enable_eauth;
+
+    if (mqttCtx->client.enable_eauth == 1)
+    {
+        /* Enhanced authentication */
+        /* Add property: Authentication Method */
+        MqttProp* prop = MqttClient_PropsAdd(&mqttCtx->connect.props);
+        prop->type = MQTT_PROP_AUTH_METHOD;
+        prop->data_str.str = (char*)mqttCtx->auth_method;
+        prop->data_str.len = (word16)XSTRLEN(prop->data_str.str);
+    }
+    {
+        /* Request Response Information */
+        MqttProp* prop = MqttClient_PropsAdd(&mqttCtx->connect.props);
+        prop->type = MQTT_PROP_REQ_RESP_INFO;
+        prop->data_byte = 1;
+    }
+    {
+        /* Request Problem Information */
+        MqttProp* prop = MqttClient_PropsAdd(&mqttCtx->connect.props);
+        prop->type = MQTT_PROP_REQ_PROB_INFO;
+        prop->data_byte = 1;
+    }
+    {
+        /* Maximum Packet Size */
+        MqttProp* prop = MqttClient_PropsAdd(&mqttCtx->connect.props);
+        prop->type = MQTT_PROP_MAX_PACKET_SZ;
+        prop->data_int = (word32)mqttCtx->max_packet_size;
+    }
+    {
+        /* Topic Alias Maximum */
+        MqttProp* prop = MqttClient_PropsAdd(&mqttCtx->connect.props);
+        prop->type = MQTT_PROP_TOPIC_ALIAS_MAX;
+        prop->data_short = mqttCtx->topic_alias_max;
+    }
+#endif
 
     /* Send Connect and wait for Connect Ack */
     do {
         rc = MqttClient_Connect(&mqttCtx->client, &mqttCtx->connect);
     } while (rc == MQTT_CODE_CONTINUE || rc == MQTT_CODE_STDIN_WAKE);
-
+#ifdef WOLFMQTT_V5
+    /* Release the allocated properties */
+    MqttClient_PropsFree(&mqttCtx->connect.props);
+    /* Release the allocated properties */
+    MqttClient_PropsFree(&mqttCtx->lwt_msg.props);
+#endif
     PRINTF("MQTT Connect: Proto (%s), %s (%d)",
         MqttClient_GetProtocolVersionString(&mqttCtx->client),
         MqttClient_ReturnCodeToString(rc), rc);
