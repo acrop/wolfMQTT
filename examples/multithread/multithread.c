@@ -364,7 +364,14 @@ static void *subscribe_task(void *param)
             sizeof(mqttCtx->topics) / sizeof(MqttTopic);
     mqttCtx->subscribe.topics = mqttCtx->topics;
 
-    rc = MqttClient_Subscribe(&mqttCtx->client, &mqttCtx->subscribe);
+    for (;;) {
+        rc = MqttClient_Subscribe(&mqttCtx->client, &mqttCtx->subscribe);
+    #ifdef WOLFMQTT_NONBLOCK
+        if (rc == MQTT_CODE_CONTINUE)
+            continue;
+    #endif
+        break;
+    }
 
     PRINTF("MQTT Subscribe: %s (%d)",
         MqttClient_ReturnCodeToString(rc), rc);
@@ -404,6 +411,11 @@ static void *waitMessage_task(void *param)
     do {
         /* Try and read packet */
         rc = MqttClient_WaitMessage(&mqttCtx->client, mqttCtx->cmd_timeout_ms);
+
+    #ifdef WOLFMQTT_NONBLOCK
+        if (rc == MQTT_CODE_CONTINUE)
+            continue;
+    #endif
 
         /* check for test mode */
         if (mqtt_stop_get()) {
@@ -490,10 +502,17 @@ static void *publish_task(void *param)
     publish.buffer = (byte*)buf;
     publish.total_len = (word16)XSTRLEN(buf);
 
-    rc = MqttClient_Publish(&mqttCtx->client, &publish);
+    for (;;) {
+        rc = MqttClient_Publish(&mqttCtx->client, &publish);
+    #ifdef WOLFMQTT_NONBLOCK
+        if (rc == MQTT_CODE_CONTINUE)
+            continue;
+    #endif
+        break;
+    }
 
-    PRINTF("MQTT Publish: Topic %s, %s (%d)",
-        publish.topic_name,
+    PRINTF("MQTT Publish: Topic %s, Payload %s, %s (%d)",
+        publish.topic_name, buf,
         MqttClient_ReturnCodeToString(rc), rc);
 
     THREAD_EXIT(0);
@@ -519,7 +538,14 @@ static void *ping_task(void *param)
         /* Keep Alive Ping */
         PRINTF("Sending ping keep-alive");
 
-        rc = MqttClient_Ping_ex(&mqttCtx->client, &ping);
+        for (;;) {
+            rc = MqttClient_Ping_ex(&mqttCtx->client, &ping);
+        #ifdef WOLFMQTT_NONBLOCK
+            if (rc == MQTT_CODE_CONTINUE)
+                continue;
+        #endif
+            break;
+        }
         if (rc != MQTT_CODE_SUCCESS) {
             PRINTF("MQTT Ping Keep Alive Error: %s (%d)",
                 MqttClient_ReturnCodeToString(rc), rc);
@@ -542,9 +568,15 @@ static int unsubscribe_do(MQTTCtx *mqttCtx)
     mqttCtx->unsubscribe.topics = mqttCtx->topics;
 
     /* Unsubscribe Topics */
-    rc = MqttClient_Unsubscribe(&mqttCtx->client,
+    for (;;) {
+        rc = MqttClient_Unsubscribe(&mqttCtx->client,
            &mqttCtx->unsubscribe);
-
+    #ifdef WOLFMQTT_NONBLOCK
+        if (rc == MQTT_CODE_CONTINUE)
+            continue;
+    #endif
+        break;
+    }
     PRINTF("MQTT Unsubscribe: %s (%d)",
         MqttClient_ReturnCodeToString(rc), rc);
 
