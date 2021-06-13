@@ -49,48 +49,52 @@ static int mqtt_disconnect_cb(MqttClient* client, int error_code, void* ctx)
 static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
     byte msg_new, byte msg_done)
 {
-    byte buf[PRINT_BUFFER_SIZE+1];
-    word32 len;
     MQTTCtx* mqttCtx = (MQTTCtx*)client->ctx;
-
-    (void)mqttCtx;
+    if (msg->skip) {
+        return MQTT_CODE_SUCCESS;
+    }
+    if (msg->duplicate) {
+        msg->skip = 1;
+        return MQTT_CODE_SUCCESS;
+    }
 
     if (msg_new) {
-        /* Determine min size to dump */
-        len = msg->topic_name_len;
-        if (len > PRINT_BUFFER_SIZE) {
-            len = PRINT_BUFFER_SIZE;
+        word32 write_available;
+        word16 topic_len = msg->topic_name_len;
+        word32 payload_len = msg->total_len;
+        // total_len = sigma of (word32 topic_len:word16, body_len:word32, topic, \0, body, \0)
+        word32 total_len = sizeof(word32) + sizeof(topic_len) + topic_len + 1 + payload_len + 1;
+        msg->skip = 1;
+        if (total_len > mqttCtx->on_message_rb.capacity) {
+            return MQTT_CODE_SUCCESS;
         }
-        XMEMCPY(buf, msg->topic_name, len);
-        buf[len] = '\0'; /* Make sure its null terminated */
-
-        /* Print incoming message */
-        PRINTF("MQTT Message: Topic %s, Qos %d, Len %u",
-            buf, msg->qos, msg->total_len);
-
-        /* for test mode: check if DEFAULT_MESSAGE was received */
-        if (mqttCtx->test_mode) {
-            if (XSTRLEN(DEFAULT_MESSAGE) == msg->buffer_len &&
-                XSTRNCMP(DEFAULT_MESSAGE, (char*)msg->buffer,
-                         msg->buffer_len) == 0)
-            {
-                mStopRead = 1;
+        for (;;) {
+            write_available = ringbuf_write_available(&mqttCtx->on_message_rb);
+            if (write_available >= total_len) {
+                msg->skip = 0;
+                break;
             }
+        #ifdef WOLFMQTT_NONBLOCK
+            return MQTT_CODE_CONTINUE;
+        #endif
+            mqttCtx->sleep_ms_cb(mqttCtx->app_ctx, 1);
         }
+        if (msg->skip) {
+            ((char*)msg->topic_name)[topic_len] = 0;
+        #ifdef DEBUG_WOLFMQTT
+            PRINTF("Dropped %s write_available:%d total_len:%d\n",
+                msg->topic_name, write_available, total_len);
+        #endif
+            return MQTT_CODE_SUCCESS;
+        }
+        ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&total_len, sizeof(total_len));
+        ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&topic_len, sizeof(topic_len));
+        ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)msg->topic_name, topic_len);
+        ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)"\0", 1);
     }
-
-    /* Print message payload */
-    len = msg->buffer_len;
-    if (len > PRINT_BUFFER_SIZE) {
-        len = PRINT_BUFFER_SIZE;
-    }
-    XMEMCPY(buf, msg->buffer, len);
-    buf[len] = '\0'; /* Make sure its null terminated */
-    PRINTF("Payload (%d - %d): %s",
-        msg->buffer_pos, msg->buffer_pos + len, buf);
-
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)msg->buffer, msg->buffer_len);
     if (msg_done) {
-        PRINTF("MQTT Message: Done");
+        ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)"\0", 1);
     }
 
     /* Return negative to terminate publish processing */
@@ -277,11 +281,28 @@ void mqttclient_context_initialize(MQTTCtx *mqttCtx)
 
 void mqttclient_connect_initialize(MQTTCtx *mqttCtx)
 {
+    MqttClient *client = &mqttCtx->client;
+    /* Reset client properties */
+    client->ping_sending = 0;
+    client->start_time_ms = 0;
+    client->network_time_ms = 0;
+#ifdef WOLFMQTT_MULTITHREAD
+    MqttClient_RespList_Reset(&mqttCtx->client);
+#endif
+    XMEMSET(&client->ping, 0, sizeof(client->ping));
+    XMEMSET(&client->resp_queue, 0, sizeof(client->resp_queue));
+    XMEMSET(&client->publish_resp, 0, sizeof(client->publish_resp));
+    XMEMSET(&client->packet, 0, sizeof(client->packet));
+    XMEMSET(&client->read, 0, sizeof(client->read));
+    XMEMSET(&client->write, 0, sizeof(client->write));
+    XMEMSET(&client->msg, 0, sizeof(client->msg));
+
     /* Build connect packet */
     XMEMSET(mqttCtx->connect, 0, sizeof(MqttConnect));
     mqttCtx->connect->keep_alive_sec = mqttCtx->keep_alive_sec;
     mqttCtx->connect->clean_session = mqttCtx->clean_session;
     mqttCtx->connect->client_id = mqttCtx->client_id;
+    mqttCtx->connect->timeout_ms = mqttCtx->connect_timeout_ms;
 
     /* Last will and testament sent by broker to subscribers
         of topic when broker connection is lost */
@@ -297,11 +318,12 @@ void mqttclient_connect_initialize(MQTTCtx *mqttCtx)
         mqttCtx->lwt_msg.total_len = (word16)XSTRLEN(mqttCtx->client_id);
 
 #ifdef WOLFMQTT_V5
+        if (mqttCtx->lwt_will_delay_interval > 0)
         {
-            /* Add a 5 second delay to sending the LWT */
+            /* Add a delay parameter to sending the LWT */
             MqttProp* prop = MqttClient_PropsAdd(&mqttCtx->lwt_msg.props);
             prop->type = MQTT_PROP_WILL_DELAY_INTERVAL;
-            prop->data_int = 5;
+            prop->data_int = mqttCtx->lwt_will_delay_interval;
         }
 #endif
     }
@@ -318,7 +340,7 @@ void mqttclient_connect_initialize(MQTTCtx *mqttCtx)
         /* Add property: Authentication Method */
         MqttProp* prop = MqttClient_PropsAdd(&mqttCtx->connect->props);
         prop->type = MQTT_PROP_AUTH_METHOD;
-        prop->data_str.str = (char*)DEFAULT_AUTH_METHOD;
+        prop->data_str.str = (char*)mqttCtx->auth_method;
         prop->data_str.len = (word16)XSTRLEN(prop->data_str.str);
     }
     {
