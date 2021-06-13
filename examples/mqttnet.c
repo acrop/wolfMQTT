@@ -24,9 +24,7 @@
     #include <config.h>
 #endif
 
-#include "wolfmqtt/mqtt_client.h"
-#include "examples/mqttnet.h"
-#include "examples/mqttexample.h"
+#include "mqttnet.h"
 
 #if defined(MICROCHIP_MPLAB_HARMONY)
     #include <system/tmr/sys_tmr.h>

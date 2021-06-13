@@ -22,11 +22,11 @@
 #ifndef WOLFMQTT_NET_H
 #define WOLFMQTT_NET_H
 
+#include "examples/mqttexample.h"
+
 #ifdef __cplusplus
     extern "C" {
 #endif
-
-#include "examples/mqttexample.h"
 
 /* Functions used to handle the MqttNet structure creation / destruction */
 int MqttClientNet_Init(MqttNet* net, MQTTCtx* mqttCtx);

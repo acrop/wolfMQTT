@@ -22,6 +22,9 @@
 #ifndef WOLFMQTT_EXAMPLE_H
 #define WOLFMQTT_EXAMPLE_H
 
+#include "wolfmqtt/ringbuf.h"
+#include "wolfmqtt/mqtt_client.h"
+
 #ifdef __cplusplus
     extern "C" {
 #endif
@@ -116,6 +119,8 @@ typedef struct _MQTTCtx {
     MqttNet net;
     MqttTlsCb tls_cb;
 
+    byte stopped; /* Setting stopped to 1 to stop the non blocking state machine */
+
     /* temp mqtt containers */
     MqttConnect connect;
     MqttMessage lwt_msg;
@@ -140,12 +145,26 @@ typedef struct _MQTTCtx {
     const char* message;
     const char* pub_file;
     const char* client_id;
-    byte *tx_buf, *rx_buf;
-    volatile word16 package_id_last;
+
+    /* buffer for receiving client id from server */
+    byte* client_id_buf;
+    int client_id_buf_size;
+
+    byte *tx_buf;
+    int tx_buf_size;
+    byte *rx_buf;
+    int rx_buf_size;
+    _Atomic word16 package_id_last;
+    struct ringbuf on_message_rb; // on message ring buffer
     int return_code;
     int use_tls;
     int retain;
     int enable_lwt;
+#ifdef ENABLE_MQTT_TLS
+    const char* root_ca;
+    const char* device_cert;
+    const char* device_priv_key;
+#endif
 #ifdef WOLFMQTT_V5
     word32 max_packet_size;
 #endif
@@ -181,6 +200,10 @@ typedef struct MQTTCtxExample {
     void* app_ctx; /* For storing application specific data */
 } MQTTCtxExample;
 
+WOLFMQTT_LOCAL void mqtt_context_init(MQTTCtx* mqttCtx, void* app_ctx);
+WOLFMQTT_LOCAL int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, const uint8_t *content, int len);
+WOLFMQTT_LOCAL int mqtt_receive_msg(MQTTCtx *mqttCtx, uint8_t *buffer, uint32_t buffer_len);
+
 void mqtt_show_usage(MQTTCtx* mqttCtx);
 void mqtt_init_ctx(MQTTCtx* mqttCtx, MQTTCtxExample* example);
 void mqtt_free_ctx(MQTTCtx* mqttCtx);
@@ -188,7 +211,7 @@ int mqtt_parse_args(MQTTCtx* mqttCtx, int argc, char** argv);
 int err_sys(const char* msg);
 
 int mqtt_tls_cb(MqttClient* client);
-word16 mqtt_get_packetid(volatile word16 *package_id_last);
+word16 mqtt_get_packetid(_Atomic word16 *package_id_last);
 
 #ifdef __cplusplus
     } /* extern "C" */

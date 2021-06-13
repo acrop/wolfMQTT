@@ -133,6 +133,99 @@ static int mqtt_get_rand(byte* data, word32 len)
     return ret;
 }
 
+void mqtt_context_init(MQTTCtx* mqttCtx, void* app_ctx)
+{
+    XMEMSET(mqttCtx, 0, sizeof(MQTTCtx));
+    mqttCtx->app_ctx = app_ctx;
+    mqttCtx->username = NULL;
+    mqttCtx->password = NULL;
+    mqttCtx->client_id = NULL;
+    mqttCtx->host = DEFAULT_MQTT_HOST;
+
+    mqttCtx->qos = DEFAULT_MQTT_QOS;
+    mqttCtx->tls_cb = mqtt_tls_cb;
+    mqttCtx->clean_session = 1;
+    mqttCtx->keep_alive_sec = DEFAULT_KEEP_ALIVE_SEC;
+    mqttCtx->lwt_msg_topic_name = DEFAULT_LWT_TOPIC_NAME;
+    mqttCtx->connect_timeout_ms = DEFAULT_CON_TIMEOUT_MS;
+    mqttCtx->cmd_timeout_ms = DEFAULT_CMD_TIMEOUT_MS;
+#ifdef WOLFMQTT_V5
+    mqttCtx->lwt_will_delay_interval = DEFAULT_LWT_WILL_DELAY_INTERVAL;
+    mqttCtx->auth_method = DEFAULT_AUTH_METHOD;
+    mqttCtx->max_packet_size = WOLFMQTT_MAX_PACKET_SIZE;
+    mqttCtx->topic_alias_max = DEFAULT_TOPIC_ALIAS_MAX;
+#endif
+
+    atomic_store_explicit(&mqttCtx->package_id_last, 0, memory_order_seq_cst);
+}
+
+int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, const uint8_t *content, int len)
+{
+    int rc = MQTT_CODE_SUCCESS;
+    MqttPublish publish;
+    /* Publish Topic */
+    XMEMSET(&publish, 0, sizeof(MqttPublish));
+    publish.retain = 0;
+    publish.qos = qos;
+    publish.duplicate = 0;
+    publish.topic_name = topic;
+    publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
+    publish.buffer = (byte*)content;
+    publish.total_len = (word16)len;
+
+    for (;;) {
+        if (mqttCtx->stat == WMQ_WAIT_MSG) {
+            break;
+        }
+    }
+
+    do {
+        rc = MqttClient_Publish(&mqttCtx->client, &publish);
+    } while (rc == MQTT_CODE_CONTINUE);
+    if (rc != MQTT_CODE_SUCCESS) {
+        mqttCtx->stat = WMQ_NET_DISCONNECT;
+        mqttCtx->return_code = rc;
+    }
+    return rc;
+}
+
+int mqtt_receive_msg(MQTTCtx *mqttCtx, uint8_t *buffer, uint32_t buffer_len)
+{
+    uint32_t total_len;
+    size_t sizeof_total_len = sizeof(total_len);
+    size_t readed_len = ringbuf_read(&mqttCtx->on_message_rb, (uint8_t *)&total_len, sizeof_total_len, false);
+    if (readed_len != sizeof_total_len) {
+        if (readed_len == 0) {
+            return 0;
+        }
+        ringbuf_reset(&mqttCtx->on_message_rb);
+        return -1;
+    }
+    if (total_len > mqttCtx->on_message_rb.capacity) {
+        ringbuf_reset(&mqttCtx->on_message_rb);
+        return -1;
+    }
+
+#ifdef WOLFMQTT_V5
+    if (total_len > mqttCtx->max_packet_size) {
+        ringbuf_reset(&mqttCtx->on_message_rb);
+        return -1;
+    }
+#endif
+
+    if (ringbuf_read_available(&mqttCtx->on_message_rb) < total_len) {
+        return 0;
+    }
+    if (buffer_len < total_len) {
+        ringbuf_read(&mqttCtx->on_message_rb, NULL, total_len, true);
+        return -1;
+    } else {
+        ringbuf_read(&mqttCtx->on_message_rb, buffer, total_len, true);
+        return 1;
+    }
+    return 0;
+}
+
 #ifndef TEST_RAND_SZ
 #define TEST_RAND_SZ 4
 #endif
@@ -220,27 +313,14 @@ void mqtt_show_usage(MQTTCtx* mqttCtx)
 
 void mqtt_init_ctx(MQTTCtx* mqttCtx, MQTTCtxExample* mqttExample)
 {
-    XMEMSET(mqttCtx, 0, sizeof(MQTTCtx));
     XMEMSET(mqttExample, 0, sizeof(MQTTCtxExample));
-    mqttCtx->app_ctx = mqttExample;
-    mqttCtx->host = "127.0.0.1";
-    mqttCtx->qos = DEFAULT_MQTT_QOS;
-    mqttCtx->tls_cb = mqtt_tls_cb;
-    mqttCtx->clean_session = 1;
-    mqttCtx->keep_alive_sec = DEFAULT_KEEP_ALIVE_SEC;
+    mqtt_context_init(mqttCtx, mqttExample);
     mqttCtx->client_id = kDefClientId;
-    mqttCtx->lwt_msg_topic_name = DEFAULT_LWT_TOPIC_NAME;
     mqttCtx->topics = topics;
     mqttCtx->topic_count = sizeof(topics) / sizeof(topics[0]);
     mqttExample->topic_name = kDefTopicName;
-    mqttCtx->connect_timeout_ms = DEFAULT_CON_TIMEOUT_MS;
-    mqttCtx->cmd_timeout_ms = DEFAULT_CMD_TIMEOUT_MS;
-    mqttCtx->enable_eauth = 0;
 #ifdef WOLFMQTT_V5
-    mqttCtx->auth_method = DEFAULT_AUTH_METHOD;
-    mqttCtx->lwt_will_delay_interval = DEFAULT_LWT_WILL_DELAY_INTERVAL;
-    mqttCtx->max_packet_size = WOLFMQTT_MAX_PACKET_SIZE;
-    mqttCtx->topic_alias_max = DEFAULT_TOPIC_ALIAS_MAX;
+    mqttCtx->enable_eauth = 0;
     mqttExample->topic_alias = 1;
 #endif
 }
@@ -429,11 +509,11 @@ int err_sys(const char* msg)
 }
 
 
-word16 mqtt_get_packetid(volatile word16 *package_id_last)
+word16 mqtt_get_packetid(_Atomic word16 *package_id_last)
 {
     /* Check rollover */
     for (;;) {
-        word16 package_id = (*package_id_last)++;
+        word16 package_id = atomic_fetch_add_explicit(package_id_last, 1, memory_order_seq_cst);;
         if (package_id != 0) {
             return package_id;
         }
@@ -474,6 +554,7 @@ static int mqtt_tls_verify_cb(int preverify, WOLFSSL_X509_STORE_CTX* store)
 int mqtt_tls_cb(MqttClient* client)
 {
     int rc = WOLFSSL_FAILURE;
+    MQTTCtx* mqttCtx = (MQTTCtx*)client->ctx;
 
     client->tls.ctx = wolfSSL_CTX_new(wolfTLSv1_2_client_method());
     if (client->tls.ctx) {
@@ -482,57 +563,24 @@ int mqtt_tls_cb(MqttClient* client)
 
         /* default to success */
         rc = WOLFSSL_SUCCESS;
-
-#if !defined(NO_CERT)
-    #if !defined(NO_FILESYSTEM)
-        if (mTlsCaFile) {
-            /* Load CA certificate file */
-            rc = wolfSSL_CTX_load_verify_locations(client->tls.ctx,
-                mTlsCaFile, NULL);
-            if (rc != WOLFSSL_SUCCESS) {
-                PRINTF("Error loading CA %s: %d (%s)", mTlsCaFile, 
-                    rc, wolfSSL_ERR_reason_error_string(rc));
-                return rc;
-            }
-        }
-        if (mTlsCertFile && mTlsKeyFile) {
-            /* Load If using a mutual authentication */
-            rc = wolfSSL_CTX_use_certificate_file(client->tls.ctx,
-                mTlsCertFile, WOLFSSL_FILETYPE_PEM);
-            if (rc != WOLFSSL_SUCCESS) {
-                PRINTF("Error loading certificate %s: %d (%s)", mTlsCertFile, 
-                    rc, wolfSSL_ERR_reason_error_string(rc));
-                return rc;
-            }
-            rc = wolfSSL_CTX_use_PrivateKey_file(client->tls.ctx,
-                mTlsKeyFile, WOLFSSL_FILETYPE_PEM);
-            if (rc != WOLFSSL_SUCCESS) {
-                PRINTF("Error loading key %s: %d (%s)", mTlsKeyFile, 
-                    rc, wolfSSL_ERR_reason_error_string(rc));
-                return rc;
-            }
-        }
-    #else
-    #if 0
+    }
+    if (rc == WOLFSSL_SUCCESS && mqttCtx->root_ca != NULL) {
         /* Examples for loading buffer directly */
         /* Load CA certificate buffer */
         rc = wolfSSL_CTX_load_verify_buffer(client->tls.ctx,
-            (const byte*)root_ca, (long)XSTRLEN(root_ca), WOLFSSL_FILETYPE_PEM);
+            (const byte*)mqttCtx->root_ca, (long)XSTRLEN(mqttCtx->root_ca), WOLFSSL_FILETYPE_PEM);
 
         /* Load Client Cert */
         if (rc == WOLFSSL_SUCCESS)
             rc = wolfSSL_CTX_use_certificate_buffer(client->tls.ctx,
-                (const byte*)device_cert, (long)XSTRLEN(device_cert),
+                (const byte*)mqttCtx->device_cert, (long)XSTRLEN(mqttCtx->device_cert),
                 WOLFSSL_FILETYPE_PEM);
 
         /* Load Private Key */
         if (rc == WOLFSSL_SUCCESS)
             rc = wolfSSL_CTX_use_PrivateKey_buffer(client->tls.ctx,
-                (const byte*)device_priv_key, (long)XSTRLEN(device_priv_key),
+                (const byte*)mqttCtx->device_priv_key, (long)XSTRLEN(mqttCtx->device_priv_key),
                 WOLFSSL_FILETYPE_PEM);
-    #endif
-    #endif /* !NO_FILESYSTEM */
-#endif /* !NO_CERT */
     }
 
     PRINTF("MQTT TLS Setup (%d)", rc);
