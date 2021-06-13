@@ -225,6 +225,8 @@ static int multithread_test_init(MQTTCtx *mqttCtx)
 
     PRINTF("Use \"Ctrl+c\" to exit.");
 
+    mqttCtx->useNonBlockMode = 1;
+
     /* Initialize Network */
     rc = MqttClientNet_Init(&mqttCtx->net, mqttCtx);
     PRINTF("MQTT Net Init: %s (%d)",
