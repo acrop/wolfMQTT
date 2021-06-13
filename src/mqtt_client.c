@@ -1183,7 +1183,7 @@ int MqttClient_Connect(MqttClient *client, MqttConnect *mc_connect)
         return MQTT_CODE_ERROR_BAD_ARG;
     }
 
-    if (mc_connect->stat == MQTT_MSG_BEGIN) {
+    if (mc_connect->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -1244,19 +1244,19 @@ int MqttClient_Connect(MqttClient *client, MqttConnect *mc_connect)
     #ifdef WOLFMQTT_V5
         /* Enhanced authentication */
         if (client->enable_eauth == 1) {
-            mc_connect->stat = MQTT_MSG_AUTH;
+            mc_connect->stat.write = MQTT_MSG_AUTH;
         }
         else
     #endif
         {
-            mc_connect->stat = MQTT_MSG_WAIT;
+            mc_connect->stat.write = MQTT_MSG_WAIT;
         }
     }
 
 #ifdef WOLFMQTT_V5
     /* Enhanced authentication */
     if (mc_connect->protocol_level > MQTT_CONNECT_PROTOCOL_LEVEL_4 &&
-            mc_connect->stat == MQTT_MSG_AUTH)
+            mc_connect->stat.write == MQTT_MSG_AUTH)
     {
         MqttAuth auth, *p_auth = &auth;
         MqttProp* prop, *conn_prop;
@@ -1323,7 +1323,7 @@ int MqttClient_Connect(MqttClient *client, MqttConnect *mc_connect)
 #endif
 
     /* reset state */
-    mc_connect->stat = MQTT_MSG_BEGIN;
+    mc_connect->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
@@ -1569,7 +1569,7 @@ int MqttClient_Publish_ex(MqttClient *client, MqttPublish *publish,
     }
 #endif
 
-    switch (publish->stat)
+    switch (publish->stat.write)
     {
         case MQTT_MSG_BEGIN:
         {
@@ -1619,7 +1619,7 @@ int MqttClient_Publish_ex(MqttClient *client, MqttPublish *publish,
             }
         #endif
 
-            publish->stat = MQTT_MSG_WRITE;
+            publish->stat.write = MQTT_MSG_WRITE;
         }
         FALL_THROUGH;
 
@@ -1645,7 +1645,7 @@ int MqttClient_Publish_ex(MqttClient *client, MqttPublish *publish,
             }
 
             /* advance state */
-            publish->stat = MQTT_MSG_WRITE_PAYLOAD;
+            publish->stat.write = MQTT_MSG_WRITE_PAYLOAD;
         }
         FALL_THROUGH;
 
@@ -1674,7 +1674,7 @@ int MqttClient_Publish_ex(MqttClient *client, MqttPublish *publish,
             if (publish->qos == MQTT_QOS_0) {
                 break;
             }
-            publish->stat = MQTT_MSG_WAIT;
+            publish->stat.write = MQTT_MSG_WAIT;
         }
         FALL_THROUGH;
 
@@ -1711,11 +1711,11 @@ int MqttClient_Publish_ex(MqttClient *client, MqttPublish *publish,
         case MQTT_MSG_READ_PAYLOAD:
         #ifdef WOLFMQTT_DEBUG_CLIENT
             PRINTF("MqttClient_Publish: Invalid state %d!",
-                publish->stat);
+                publish->stat.write);
         #endif
             rc = MQTT_CODE_ERROR_STAT;
             break;
-    } /* switch (publish->stat) */
+    } /* switch (publish->stat.write) */
 
     /* reset state */
     if ((rc != MQTT_CODE_PUB_CONTINUE)
@@ -1724,7 +1724,7 @@ int MqttClient_Publish_ex(MqttClient *client, MqttPublish *publish,
 #endif
         )
     {
-        publish->stat = MQTT_MSG_BEGIN;
+        publish->stat.write = MQTT_MSG_BEGIN;
     }
     if (rc > 0) {
         rc = MQTT_CODE_SUCCESS;
@@ -1748,7 +1748,7 @@ int MqttClient_Subscribe(MqttClient *client, MqttSubscribe *subscribe)
     subscribe->protocol_level = client->protocol_level;
 #endif
 
-    if (subscribe->stat == MQTT_MSG_BEGIN) {
+    if (subscribe->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -1802,7 +1802,7 @@ int MqttClient_Subscribe(MqttClient *client, MqttSubscribe *subscribe)
             return rc;
         }
 
-        subscribe->stat = MQTT_MSG_WAIT;
+        subscribe->stat.write = MQTT_MSG_WAIT;
     }
 
     /* Wait for subscribe ack packet */
@@ -1830,7 +1830,7 @@ int MqttClient_Subscribe(MqttClient *client, MqttSubscribe *subscribe)
     }
 
     /* reset state */
-    subscribe->stat = MQTT_MSG_BEGIN;
+    subscribe->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
@@ -1849,7 +1849,7 @@ int MqttClient_Unsubscribe(MqttClient *client, MqttUnsubscribe *unsubscribe)
     unsubscribe->protocol_level = client->protocol_level;
 #endif
 
-    if (unsubscribe->stat == MQTT_MSG_BEGIN) {
+    if (unsubscribe->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -1904,7 +1904,7 @@ int MqttClient_Unsubscribe(MqttClient *client, MqttUnsubscribe *unsubscribe)
             return rc;
         }
 
-        unsubscribe->stat = MQTT_MSG_WAIT;
+        unsubscribe->stat.write = MQTT_MSG_WAIT;
     }
 
     /* Wait for unsubscribe ack packet */
@@ -1924,7 +1924,7 @@ int MqttClient_Unsubscribe(MqttClient *client, MqttUnsubscribe *unsubscribe)
 #endif
 
     /* reset state */
-    unsubscribe->stat = MQTT_MSG_BEGIN;
+    unsubscribe->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
@@ -1938,7 +1938,7 @@ int MqttClient_Ping_ex(MqttClient *client, MqttPing* ping)
         return MQTT_CODE_ERROR_BAD_ARG;
     }
 
-    if (ping->stat == MQTT_MSG_BEGIN) {
+    if (ping->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -1991,7 +1991,7 @@ int MqttClient_Ping_ex(MqttClient *client, MqttPing* ping)
             return rc;
         }
 
-        ping->stat = MQTT_MSG_WAIT;
+        ping->stat.write = MQTT_MSG_WAIT;
     }
 
     /* Wait for ping resp packet */
@@ -2010,7 +2010,7 @@ int MqttClient_Ping_ex(MqttClient *client, MqttPing* ping)
 #endif
 
     /* reset state */
-    ping->stat = MQTT_MSG_BEGIN;
+    ping->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
@@ -2090,7 +2090,7 @@ int MqttClient_Auth(MqttClient *client, MqttAuth* auth)
         return MQTT_CODE_ERROR_BAD_ARG;
     }
 
-    if (auth->stat == MQTT_MSG_BEGIN) {
+    if (auth->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -2143,7 +2143,7 @@ int MqttClient_Auth(MqttClient *client, MqttAuth* auth)
             return rc;
         }
 
-        auth->stat = MQTT_MSG_WAIT;
+        auth->stat.write = MQTT_MSG_WAIT;
     }
 
     /* Wait for auth packet */
@@ -2162,7 +2162,7 @@ int MqttClient_Auth(MqttClient *client, MqttAuth* auth)
 #endif
 
     /* reset state */
-    auth->stat = MQTT_MSG_BEGIN;
+    auth->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
@@ -2945,7 +2945,7 @@ int SN_Client_SearchGW(MqttClient *client, SN_SearchGw *search)
         return MQTT_CODE_ERROR_BAD_ARG;
     }
 
-    if (search->stat == MQTT_MSG_BEGIN) {
+    if (search->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -2999,7 +2999,7 @@ int SN_Client_SearchGW(MqttClient *client, SN_SearchGw *search)
         #endif
             return rc;
         }
-        search->stat = MQTT_MSG_WAIT;
+        search->stat.write = MQTT_MSG_WAIT;
     }
 
     /* Wait for gateway info packet */
@@ -3017,7 +3017,7 @@ int SN_Client_SearchGW(MqttClient *client, SN_SearchGw *search)
 #endif
 
     /* reset state */
-    search->stat = MQTT_MSG_BEGIN;
+    search->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
@@ -3173,7 +3173,7 @@ int SN_Client_Connect(MqttClient *client, SN_Connect *mc_connect)
         return MQTT_CODE_ERROR_BAD_ARG;
     }
 
-    if (mc_connect->stat == MQTT_MSG_BEGIN) {
+    if (mc_connect->stat.write == MQTT_MSG_BEGIN) {
 
         will_done = 0;
 
@@ -3224,7 +3224,7 @@ int SN_Client_Connect(MqttClient *client, SN_Connect *mc_connect)
             return rc;
         }
 
-        mc_connect->stat = MQTT_MSG_WAIT;
+        mc_connect->stat.write = MQTT_MSG_WAIT;
     }
 
     if ((mc_connect->enable_lwt == 1) && (will_done != 1)) {
@@ -3258,7 +3258,7 @@ int SN_Client_Connect(MqttClient *client, SN_Connect *mc_connect)
 #endif
 
     /* reset state */
-    mc_connect->stat = MQTT_MSG_BEGIN;
+    mc_connect->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
@@ -3272,7 +3272,7 @@ int SN_Client_WillTopicUpdate(MqttClient *client, SN_Will *will)
         return MQTT_CODE_ERROR_BAD_ARG;
     }
 
-    if (will->stat == MQTT_MSG_BEGIN) {
+    if (will->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -3325,7 +3325,7 @@ int SN_Client_WillTopicUpdate(MqttClient *client, SN_Will *will)
             }
         #endif
         }
-        will->stat = MQTT_MSG_WAIT;
+        will->stat.write = MQTT_MSG_WAIT;
     }
 
     /* Wait for Will Topic Update Response packet */
@@ -3343,7 +3343,7 @@ int SN_Client_WillTopicUpdate(MqttClient *client, SN_Will *will)
 #endif
 
     /* reset state */
-    will->stat = MQTT_MSG_BEGIN;
+    will->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
@@ -3357,7 +3357,7 @@ int SN_Client_WillMsgUpdate(MqttClient *client, SN_Will *will)
         return MQTT_CODE_ERROR_BAD_ARG;
     }
 
-    if (will->stat == MQTT_MSG_BEGIN) {
+    if (will->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -3409,7 +3409,7 @@ int SN_Client_WillMsgUpdate(MqttClient *client, SN_Will *will)
             }
         #endif
         }
-        will->stat = MQTT_MSG_WAIT;
+        will->stat.write = MQTT_MSG_WAIT;
     }
 
     /* Wait for Will Message Update Response packet */
@@ -3427,7 +3427,7 @@ int SN_Client_WillMsgUpdate(MqttClient *client, SN_Will *will)
 #endif
 
     /* reset state */
-    will->stat = MQTT_MSG_BEGIN;
+    will->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 
@@ -3442,7 +3442,7 @@ int SN_Client_Subscribe(MqttClient *client, SN_Subscribe *subscribe)
         return MQTT_CODE_ERROR_BAD_ARG;
     }
 
-    if (subscribe->stat == MQTT_MSG_BEGIN) {
+    if (subscribe->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -3497,7 +3497,7 @@ int SN_Client_Subscribe(MqttClient *client, SN_Subscribe *subscribe)
             return rc;
         }
 
-        subscribe->stat = MQTT_MSG_WAIT;
+        subscribe->stat.write = MQTT_MSG_WAIT;
     }
 
     /* Wait for subscribe ack packet */
@@ -3516,7 +3516,7 @@ int SN_Client_Subscribe(MqttClient *client, SN_Subscribe *subscribe)
 #endif
 
     /* reset state */
-    subscribe->stat = MQTT_MSG_BEGIN;
+    subscribe->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
@@ -3531,7 +3531,7 @@ int SN_Client_Publish(MqttClient *client, SN_Publish *publish)
         return MQTT_CODE_ERROR_BAD_ARG;
     }
 
-    switch ((int)publish->stat)
+    switch ((int)publish->stat.write)
     {
         case MQTT_MSG_BEGIN:
         {
@@ -3585,7 +3585,7 @@ int SN_Client_Publish(MqttClient *client, SN_Publish *publish)
             }
         #endif
 
-            publish->stat = MQTT_MSG_WRITE;
+            publish->stat.write = MQTT_MSG_WRITE;
         }
         FALL_THROUGH;
 
@@ -3624,7 +3624,7 @@ int SN_Client_Publish(MqttClient *client, SN_Publish *publish)
                 break;
             }
 
-            publish->stat = MQTT_MSG_WAIT;
+            publish->stat.write = MQTT_MSG_WAIT;
         }
         FALL_THROUGH;
 
@@ -3663,18 +3663,18 @@ int SN_Client_Publish(MqttClient *client, SN_Publish *publish)
         case MQTT_MSG_READ_PAYLOAD:
         #ifdef WOLFMQTT_DEBUG_CLIENT
             PRINTF("SN_Client_Publish: Invalid state %d!",
-                publish->stat);
+                publish->stat.write);
         #endif
             rc = MQTT_CODE_ERROR_STAT;
             break;
-    } /* switch (publish->stat) */
+    } /* switch (publish->stat.write) */
 
     /* reset state */
 #ifdef WOLFMQTT_NONBLOCK
     if (rc != MQTT_CODE_CONTINUE)
 #endif
     {
-        publish->stat = MQTT_MSG_BEGIN;
+        publish->stat.write = MQTT_MSG_BEGIN;
     }
     if (rc > 0) {
         rc = MQTT_CODE_SUCCESS;
@@ -3692,7 +3692,7 @@ int SN_Client_Unsubscribe(MqttClient *client, SN_Unsubscribe *unsubscribe)
         return MQTT_CODE_ERROR_BAD_ARG;
     }
 
-    if (unsubscribe->stat == MQTT_MSG_BEGIN) {
+    if (unsubscribe->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -3745,7 +3745,7 @@ int SN_Client_Unsubscribe(MqttClient *client, SN_Unsubscribe *unsubscribe)
             }
         #endif
         }
-        unsubscribe->stat = MQTT_MSG_WAIT;
+        unsubscribe->stat.write = MQTT_MSG_WAIT;
     }
 
     /* Wait for unsubscribe ack packet */
@@ -3764,7 +3764,7 @@ int SN_Client_Unsubscribe(MqttClient *client, SN_Unsubscribe *unsubscribe)
     #endif
 
     /* reset state */
-    unsubscribe->stat = MQTT_MSG_BEGIN;
+    unsubscribe->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
@@ -3778,7 +3778,7 @@ int SN_Client_Register(MqttClient *client, SN_Register *regist)
         return MQTT_CODE_ERROR_BAD_ARG;
     }
 
-    if (regist->stat == MQTT_MSG_BEGIN) {
+    if (regist->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -3832,7 +3832,7 @@ int SN_Client_Register(MqttClient *client, SN_Register *regist)
             return rc;
         }
 
-        regist->stat = MQTT_MSG_WAIT;
+        regist->stat.write = MQTT_MSG_WAIT;
     }
 
     /* Wait for register acknowledge packet */
@@ -3850,7 +3850,7 @@ int SN_Client_Register(MqttClient *client, SN_Register *regist)
 #endif
 
     /* reset state */
-    regist->stat = MQTT_MSG_BEGIN;
+    regist->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
@@ -3870,7 +3870,7 @@ int SN_Client_Ping(MqttClient *client, SN_PingReq *ping)
         ping = &loc_ping;
     }
 
-    if (ping->stat == MQTT_MSG_BEGIN) {
+    if (ping->stat.write == MQTT_MSG_BEGIN) {
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
         rc = wm_SemLock(&client->lockSend);
@@ -3925,7 +3925,7 @@ int SN_Client_Ping(MqttClient *client, SN_PingReq *ping)
             return rc;
         }
 
-        ping->stat = MQTT_MSG_WAIT;
+        ping->stat.write = MQTT_MSG_WAIT;
     }
 
     /* Wait for ping resp packet */
@@ -3943,7 +3943,7 @@ int SN_Client_Ping(MqttClient *client, SN_PingReq *ping)
 #endif
 
     /* reset state */
-    ping->stat = MQTT_MSG_BEGIN;
+    ping->stat.write = MQTT_MSG_BEGIN;
 
     return rc;
 }
