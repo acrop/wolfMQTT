@@ -80,12 +80,12 @@
 
 /* Debugging */
 #undef DEBUG_WOLFMQTT
-#if 0
+#if 1
   #define DEBUG_WOLFMQTT
 #endif
 
 #undef WOLFMQTT_DEBUG_CLIENT
-#if 1
+#if 0
   #define WOLFMQTT_DEBUG_CLIENT
 #endif
 
