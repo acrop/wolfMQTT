@@ -150,6 +150,9 @@ typedef struct _MqttClient {
 
     MqttMsgCb    msg_cb;
     MqttObject   msg;   /* generic incoming message used by MqttClient_WaitType */
+
+    /* locked by lockRecv, for ack publish message from broker to client */
+    MqttPublishResp publish_resp;
 #ifdef WOLFMQTT_SN
     SN_Object    msgSN;
     SN_ClientRegisterCb reg_cb;
