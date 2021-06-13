@@ -50,7 +50,7 @@
 
 /* Disable socket timeout code */
 #undef WOLFMQTT_NO_TIMEOUT
-#if 0
+#if 1
   #define WOLFMQTT_NO_TIMEOUT
 #endif
 
