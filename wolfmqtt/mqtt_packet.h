@@ -289,6 +289,26 @@ typedef enum _MqttMsgStat {
     MQTT_MSG_READ_PAYLOAD,
 } MqttMsgStat;
 
+/*
+ A single package may used for both sending and receiving such as
+ ping and auth, so we save the recv and send state separately
+*/
+typedef struct _MqttMsgStatFull {
+    MqttMsgStat read: 4;
+    MqttMsgStat write: 4;
+    byte on_wait_type: 1;
+    unsigned int write_locked: 1;
+    unsigned int read_locked: 1;
+    unsigned int in_resp_list: 1;
+    unsigned int padding: 5;
+
+#ifdef WOLFMQTT_DEBUG_THREAD
+    word16 packet_type;
+    word32 packet_id;
+#endif
+    word32      start_time_ms; /* Used for normal command */
+} MqttMsgStatFull;
+
 #ifdef WOLFMQTT_MULTITHREAD
 /* Pending Response Structure */
 typedef struct _MqttPendResp {
@@ -385,7 +405,7 @@ enum MqttConnectAckReturnCodes {
 
 /* Connect Ack packet structure */
 typedef struct _MqttConnectAck {
-    MqttMsgStat stat; /* must be first member at top */
+    MqttMsgStatFull stat; /* must be first member at top */
 
     byte       flags;       /* MqttConnectAckFlags */
     byte       return_code; /* MqttConnectAckCodes */
@@ -402,7 +422,7 @@ typedef struct _MqttConnectAck {
 struct _MqttMessage;
 typedef struct _MqttConnect {
     /* stat and pendResp must be first members at top */
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -444,7 +464,7 @@ typedef struct _MqttConnect {
 /* Expect response packet with type = MQTT_PACKET_TYPE_PUBLISH_COMP */
 typedef struct _MqttPublishResp {
     /* stat and pendResp must be first members at top */
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -461,7 +481,7 @@ typedef struct _MqttPublishResp {
 /* PacketId sent only if QoS > 0 */
 typedef struct _MqttMessage {
     /* stat and pendResp must be first members at top */
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -510,7 +530,7 @@ enum MqttSubscribeAckReturnCodes {
     MQTT_SUBSCRIBE_ACK_CODE_FAILURE = 0x80,
 };
 typedef struct _MqttSubscribeAck {
-    MqttMsgStat stat; /* must be first member at top */
+    MqttMsgStatFull stat; /* must be first member at top */
 
     word16      packet_id;
     byte        return_codes[MAX_MQTT_TOPICS];
@@ -524,7 +544,7 @@ typedef struct _MqttSubscribeAck {
 /* Packet Id followed by contiguous list of topics w/Qos to subscribe to. */
 typedef struct _MqttSubscribe {
     /* stat and pendResp must be first members at top */
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -545,7 +565,7 @@ typedef struct _MqttSubscribe {
 /* UNSUBSCRIBE RESPONSE ACK */
 /* No response payload (besides packet Id) */
 typedef struct _MqttUnsubscribeAck {
-    MqttMsgStat stat; /* must be first member at top */
+    MqttMsgStatFull stat; /* must be first member at top */
 
     word16      packet_id;
 #ifdef WOLFMQTT_V5
@@ -559,7 +579,7 @@ typedef struct _MqttUnsubscribeAck {
 /* Packet Id followed by contiguous list of topics to unsubscribe from. */
 typedef struct _MqttUnsubscribe {
     /* stat and pendResp must be first members at top */
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -581,7 +601,7 @@ typedef struct _MqttUnsubscribe {
 /* Fixed header "MqttPacket" only. No variable header or payload */
 typedef struct _MqttPing {
     /* stat and pendResp must be first members at top */
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -590,7 +610,7 @@ typedef struct _MqttPing {
 
 /* DISCONNECT */
 typedef struct _MqttDisconnect {
-    MqttMsgStat stat; /* must be first member at top */
+    MqttMsgStatFull stat; /* must be first member at top */
 
 #ifdef WOLFMQTT_V5
     byte reason_code;
@@ -604,7 +624,7 @@ typedef struct _MqttDisconnect {
 /* AUTH */
 typedef struct _MqttAuth {
     /* stat and pendResp must be first members at top */
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -803,7 +823,7 @@ enum SN_PacketFlags {
 /* Gateway (GW) messages */
 /* Advertise message */
 typedef struct _SN_AdvertiseMsg {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 
     byte gwId; /* ID of the gateway that sent this message */
     word16 duration; /* Seconds until next Advertise
@@ -811,14 +831,14 @@ typedef struct _SN_AdvertiseMsg {
 } SN_Advertise;
 
 typedef struct _SN_GwInfo {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 
     byte gwId; /* ID of the gateway that sent this message */
     SN_GwAddr* gwAddr; /* Address of the indicated gateway */
 } SN_GwInfo;
 
 typedef struct _SN_SearchGw {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -835,14 +855,14 @@ typedef struct _SN_SearchGw {
 
 /* Connect Ack message structure */
 typedef struct _SN_ConnectAck {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 
     byte       return_code;
 } SN_ConnectAck;
 
 /* WILL TOPIC */
 typedef struct _SN_WillTopicUpd {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -852,7 +872,7 @@ typedef struct _SN_WillTopicUpd {
 } SN_WillTopicUpd;
 
 typedef struct _SN_WillMsgUpd {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -861,7 +881,7 @@ typedef struct _SN_WillMsgUpd {
 } SN_WillMsgUpd;
 
 typedef struct _SN_WillTopicResp {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 
     byte return_code;
 } SN_WillTopicResp;
@@ -876,7 +896,7 @@ typedef union _SN_WillResp {
 } SN_WillResp;
 
 typedef struct _SN_Will {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -892,7 +912,7 @@ typedef struct _SN_Will {
 
 /* Connect */
 typedef struct _SN_Connect {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -914,7 +934,7 @@ typedef struct _SN_Connect {
 
 /* REGISTER protocol */
 typedef struct _SN_RegAck {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 
     word16 topicId;
     word16 packet_id;
@@ -922,7 +942,7 @@ typedef struct _SN_RegAck {
 } SN_RegAck;
 
 typedef struct _SN_Register {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -943,7 +963,7 @@ typedef struct _SN_Register {
     QoS2 protocol exchange */
 /* Expect response packet with type = SN_MSG_TYPE_PUBCOMP */
 typedef struct _SN_PublishResp {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 
     word16 packet_id;
     word16 topicId; /* PUBACK Only */
@@ -952,7 +972,7 @@ typedef struct _SN_PublishResp {
 
 /* PUBLISH protocol */
 typedef struct _SN_Publish {
-    MqttMsgStat stat; /* must be first member at top */
+    MqttMsgStatFull stat; /* must be first member at top */
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -987,7 +1007,7 @@ typedef struct _SN_Publish {
 
 /* SUBSCRIBE ACK */
 typedef struct _SN_SubAck {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 
     byte flags;
     word16 topicId;
@@ -997,7 +1017,7 @@ typedef struct _SN_SubAck {
 
 /* SUBSCRIBE */
 typedef struct _SN_Subscribe {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -1016,14 +1036,14 @@ typedef struct _SN_Subscribe {
 
 /* UNSUBSCRIBE RESPONSE ACK */
 typedef struct _SN_UnsubscribeAck {
-    MqttMsgStat stat; /* must be first member at top */
+    MqttMsgStatFull stat; /* must be first member at top */
 
     word16      packet_id;
 } SN_UnsubscribeAck;
 
 /* UNSUBSCRIBE */
 typedef struct _SN_Unsubscribe {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -1042,7 +1062,7 @@ typedef struct _SN_Unsubscribe {
 
 /* PING REQUEST / PING RESPONSE */
 typedef struct _SN_PingReq {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
@@ -1055,7 +1075,7 @@ typedef struct _SN_PingReq {
 
 /* DISCONNECT */
 typedef struct _SN_Disconnect {
-    MqttMsgStat stat;
+    MqttMsgStatFull stat;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttPendResp pendResp;
 #endif
