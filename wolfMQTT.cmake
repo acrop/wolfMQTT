@@ -22,11 +22,15 @@ endfunction(wolfmqtt_steup_target)
 
 function(wolfmqtt_steup_app_target target_name)
   if (WIN32)
+    target_sources(${target_name} PRIVATE
+      ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/wolfmqtt/win32/msvc_stdatomic.c
+    )
     target_link_libraries(${target_name} ws2_32)
   endif()
   target_sources(${target_name} PRIVATE
     ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/examples/mqttexample.c
     ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/examples/mqttnet.c
+    ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/wolfmqtt/ringbuf.c
   )
   if (NOT "${target_name}" STREQUAL "mqttclient")
     target_sources(${target_name} PRIVATE

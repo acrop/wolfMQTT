@@ -23,10 +23,16 @@
 #define WOLFMQTT_NBCLIENT_H
 
 #include "examples/mqttexample.h"
+#include "examples/mqttclient/mqttclient.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/* Exposed functions */
-int mqttclient_test(MQTTCtx *mqttCtx);
+enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx);
 
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* WOLFMQTT_NBCLIENT_H */
