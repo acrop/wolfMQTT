@@ -219,7 +219,7 @@ void mqtt_show_usage(MQTTCtx* mqttCtx)
 void mqtt_init_ctx(MQTTCtx* mqttCtx)
 {
     XMEMSET(mqttCtx, 0, sizeof(MQTTCtx));
-    mqttCtx->host = DEFAULT_MQTT_HOST;
+    mqttCtx->host = "127.0.0.1";
     mqttCtx->qos = DEFAULT_MQTT_QOS;
     mqttCtx->clean_session = 1;
     mqttCtx->keep_alive_sec = DEFAULT_KEEP_ALIVE_SEC;
