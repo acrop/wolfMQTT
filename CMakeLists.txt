@@ -91,7 +91,10 @@ if (WOLFMQTT_EXAMPLES AND (WIN32 OR UNIX))
   add_executable(multithread examples/multithread/multithread.c)
   wolfmqtt_steup_app_target(multithread)
 
-  add_executable(nbclient examples/nbclient/nbclient.c)
+  add_executable(nbclient
+    examples/nbclient/nbclient.c
+    examples/nbclient/main.c
+  )
   wolfmqtt_steup_app_target(nbclient)
 
   add_executable(sn-client_qos-1 examples/sn-client/sn-client_qos-1.c)
