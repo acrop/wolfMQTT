@@ -626,7 +626,7 @@ static int MqttClient_DecodePacket(MqttClient* client, byte* rx_buf,
         }
     #endif
         /* Free the properties */
-        MqttProps_Free(props);
+        MqttProps_Free(&props);
     }
 #endif
 
@@ -1479,7 +1479,7 @@ static int MqttClient_ConnectAuth(MqttClient *client, MqttConnect *mc_connect)
 
         /* Send the AUTH packet */
         rc = MqttClient_Auth(client, p_auth);
-        MqttClient_PropsFree(p_auth->props);
+        MqttClient_PropsFree(&p_auth->props);
     } else {
         rc = MqttClient_Auth(client, p_auth);
     }
@@ -1936,7 +1936,7 @@ MqttProp* MqttClient_PropsAdd(MqttProp **head)
     return MqttProps_Add(head);
 }
 
-int MqttClient_PropsFree(MqttProp *head)
+int MqttClient_PropsFree(MqttProp **head)
 {
     return MqttProps_Free(head);
 }
