@@ -38,7 +38,7 @@
 /* Maximum size for network read/write callbacks. There is also a v5 define that
    describes the max MQTT control packet size, WOLFMQTT_MAX_PKT_SZ. */
 #define MAX_BUFFER_SIZE 1024
-#define TEST_MESSAGE    "test00"
+#define TEST_MESSAGE    "test000"
 /* Number of publish tasks. Each will send a unique message to the broker. */
 #define NUM_PUB_TASKS   10
 
@@ -128,8 +128,8 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
         buf[len] = '\0'; /* Make sure its null terminated */
 
         /* Print incoming message */
-        PRINTF("MQTT Message: Topic %s, Qos %d, Id %d, Len %u",
-            buf, msg->qos, msg->packet_id, msg->total_len);
+        PRINTF("MQTT Message: Topic %s, Qos %d, Id %d, Len %u Payload:%s",
+            buf, msg->qos, msg->packet_id, msg->total_len, msg->buffer);
 
         /* for test mode: count the number of TEST_MESSAGE matches received */
         if (mqttCtx->test_mode) {
@@ -484,7 +484,7 @@ static void *publish_task(void *param)
 #endif
 {
     int rc;
-    char buf[7];
+    char buf[8] = { 0 };
     MQTTCtx *mqttCtx = (MQTTCtx*)param;
     MqttPublish publish;
 
@@ -498,10 +498,11 @@ static void *publish_task(void *param)
         publish.topic_name = mqttCtx->topic_name;
         publish.packet_id = mqtt_get_packetid_threadsafe();
         XSTRNCPY(buf, TEST_MESSAGE, sizeof(buf));
-        buf[4] = '0' + ((publish.packet_id / 10) % 10);
-        buf[5] = '0' + (publish.packet_id % 10);
+        buf[4] = '0' + ((publish.packet_id / 100) % 10);
+        buf[5] = '0' + ((publish.packet_id / 10) % 10);
+        buf[6] = '0' + ((publish.packet_id / 1) % 10);
         publish.buffer = (byte*)buf;
-        publish.total_len = (word16)XSTRLEN(buf);
+        publish.total_len = (word16)sizeof(buf);
         for (;;) {
             rc = MqttClient_Publish(&mqttCtx->client, &publish);
         #ifdef WOLFMQTT_NONBLOCK
