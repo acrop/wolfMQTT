@@ -400,7 +400,7 @@ WOLFMQTT_API MqttProp* MqttClient_PropsAdd(
  *  \return     MQTT_CODE_SUCCESS or -1 on error (and sets errno)
  */
 WOLFMQTT_API int MqttClient_PropsFree(
-    MqttProp *head);
+    MqttProp **head);
 #endif
 
 
