@@ -264,6 +264,8 @@ static int mqtt_example_init_client_cb(int rc, MqttClient *client)
     client->test_mode = ctx->test_mode;
     client->use_tls = ctx->use_tls;
     client->keep_alive_ms = (word32)ctx->keep_alive_sec * 1000;
+    client->ackQueue.size = 16;
+    client->ackQueue.data = WOLFMQTT_MALLOC(client->ackQueue.size * sizeof(client->ackQueue.data[0]));
     return rc;
 }
 
