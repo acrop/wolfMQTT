@@ -103,6 +103,7 @@ int main(int argc, const char **argv)
         PRINTF("msg payload: %s", (const char*)(recv_buffer + payload_offset));
       }
     }
+    #if 0
     if (mqtt_publish_msg(
       &mqttCtx, mqttCtx.topics[0].topic_filter, mqttCtx.topics[0].qos,
       publish_payload, sizeof(publish_payload)
@@ -110,6 +111,7 @@ int main(int argc, const char **argv)
     {
       PRINTF("app run ok");
     }
+    #endif
     Sleep(1000);
   }
 }
