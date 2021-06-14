@@ -490,32 +490,34 @@ static void *publish_task(void *param)
     MQTTCtx *mqttCtx = (MQTTCtx*)param;
     MqttPublish publish;
 
-    /* Publish Topic */
-    XMEMSET(&publish, 0, sizeof(MqttPublish));
-    publish.retain = 0;
-    publish.qos = mqttCtx->qos;
-    publish.duplicate = 0;
-    publish.topic_name = mqttCtx->topic_name;
-    publish.packet_id = mqtt_get_packetid_threadsafe();
-    XSTRNCPY(buf, TEST_MESSAGE, sizeof(buf));
-    buf[4] = '0' + ((publish.packet_id / 10) % 10);
-    buf[5] = '0' + (publish.packet_id % 10);
-    publish.buffer = (byte*)buf;
-    publish.total_len = (word16)XSTRLEN(buf);
 
     for (;;) {
-        rc = MqttClient_Publish(&mqttCtx->client, &publish);
-    #ifdef WOLFMQTT_NONBLOCK
-        if (rc == MQTT_CODE_CONTINUE)
-            continue;
-    #endif
-        break;
+        /* Publish Topic */
+        XMEMSET(&publish, 0, sizeof(MqttPublish));
+        publish.retain = 0;
+        publish.qos = mqttCtx->qos;
+        publish.duplicate = 0;
+        publish.topic_name = mqttCtx->topic_name;
+        publish.packet_id = mqtt_get_packetid_threadsafe();
+        XSTRNCPY(buf, TEST_MESSAGE, sizeof(buf));
+        buf[4] = '0' + ((publish.packet_id / 10) % 10);
+        buf[5] = '0' + (publish.packet_id % 10);
+        publish.buffer = (byte*)buf;
+        publish.total_len = (word16)XSTRLEN(buf);
+        for (;;) {
+            rc = MqttClient_Publish(&mqttCtx->client, &publish);
+        #ifdef WOLFMQTT_NONBLOCK
+            if (rc == MQTT_CODE_CONTINUE)
+                continue;
+        #endif
+            break;
+        }
+
+        PRINTF("MQTT Publish: Topic %s, Payload %s, %s (%d)",
+            publish.topic_name, buf,
+            MqttClient_ReturnCodeToString(rc), rc);
+        Sleep(1000);
     }
-
-    PRINTF("MQTT Publish: Topic %s, Payload %s, %s (%d)",
-        publish.topic_name, buf,
-        MqttClient_ReturnCodeToString(rc), rc);
-
     THREAD_EXIT(0);
 }
 
