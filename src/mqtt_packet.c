@@ -1843,15 +1843,18 @@ MqttProp* MqttProps_Add(MqttProp **head)
 }
 
 /* Free properties */
-int MqttProps_Free(MqttProp *head)
+int MqttProps_Free(MqttProp **head)
 {
+    if (*head == NULL) {
+        return 0;
+    }
 #ifdef WOLFMQTT_MULTITHREAD
     if (wm_SemLock(&clientPropStack_lock))
         return -1;
 #endif
-    while (head != NULL) {
-        head->type = (MqttPropertyType)0;
-        head = head->next;
+    while (*head != NULL) {
+        (*head)->type = (MqttPropertyType)0;
+        *head = (*head)->next;
     }
 #ifdef WOLFMQTT_MULTITHREAD
     return wm_SemUnlock(&clientPropStack_lock);
