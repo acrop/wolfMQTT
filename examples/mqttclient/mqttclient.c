@@ -356,14 +356,10 @@ int mqttclient_test(MQTTCtx *mqttCtx)
     }
 
 #ifdef WOLFMQTT_V5
-    if (mqttCtx->connect.props != NULL) {
-        /* Release the allocated properties */
-        MqttClient_PropsFree(mqttCtx->connect.props);
-    }
-    if (mqttCtx->lwt_msg.props != NULL) {
-        /* Release the allocated properties */
-        MqttClient_PropsFree(mqttCtx->lwt_msg.props);
-    }
+    /* Release the allocated properties */
+    MqttClient_PropsFree(&mqttCtx->connect.props);
+    /* Release the allocated properties */
+    MqttClient_PropsFree(&mqttCtx->lwt_msg.props);
 #endif
 
     /* Validate Connect Ack info */
@@ -407,10 +403,8 @@ int mqttclient_test(MQTTCtx *mqttCtx)
     rc = MqttClient_Subscribe(&mqttCtx->client, &mqttCtx->subscribe);
 
 #ifdef WOLFMQTT_V5
-    if (mqttCtx->subscribe.props != NULL) {
-        /* Release the allocated properties */
-        MqttClient_PropsFree(mqttCtx->subscribe.props);
-    }
+    /* Release the allocated properties */
+    MqttClient_PropsFree(&mqttCtx->subscribe.props);
 #endif
 
     PRINTF("MQTT Subscribe: %s (%d)",
@@ -469,10 +463,8 @@ int mqttclient_test(MQTTCtx *mqttCtx)
         goto disconn;
     }
 #ifdef WOLFMQTT_V5
-    if (mqttCtx->publish.props != NULL) {
-        /* Release the allocated properties */
-        MqttClient_PropsFree(mqttCtx->publish.props);
-    }
+    /* Release the allocated properties */
+    MqttClient_PropsFree(&mqttCtx->publish.props);
 #endif
 
     /* Read Loop */
