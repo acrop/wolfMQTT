@@ -387,9 +387,7 @@ static void *subscribe_task(void *param)
     }
 
 #ifdef WOLFMQTT_V5
-    if (mqttCtx->subscribe.props != NULL) {
-        MqttClient_PropsFree(mqttCtx->subscribe.props);
-    }
+    MqttClient_PropsFree(&mqttCtx->subscribe.props);
 #endif
 
     THREAD_EXIT(0);
