@@ -1775,6 +1775,7 @@ int MqttDecode_Auth(byte *rx_buf, int rx_buf_len, MqttAuth *auth)
 }
 
 int MqttProps_Init(void) {
+    XMEMSET(&clientPropStack, 0, sizeof(clientPropStack));
 #ifdef WOLFMQTT_MULTITHREAD
     return wm_SemInit(&clientPropStack_lock);
 #else
@@ -1818,7 +1819,6 @@ MqttProp* MqttProps_Add(MqttProp **head)
         if (clientPropStack[i].type == 0) {
             /* Found one */
             new_prop = &clientPropStack[i];
-            XMEMSET(new_prop, 0, sizeof(MqttProp));
             break;
         }
     }
@@ -1853,8 +1853,9 @@ int MqttProps_Free(MqttProp **head)
         return -1;
 #endif
     while (*head != NULL) {
-        (*head)->type = (MqttPropertyType)0;
+        MqttProp *old_prop = *head;
         *head = (*head)->next;
+        XMEMSET(old_prop, 0, sizeof(MqttProp));
     }
 #ifdef WOLFMQTT_MULTITHREAD
     return wm_SemUnlock(&clientPropStack_lock);
