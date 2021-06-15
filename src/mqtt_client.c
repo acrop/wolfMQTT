@@ -835,6 +835,19 @@ static int MqttClient_MsgStateUpdate(int rc,
     MqttObject *obj = send_option->send_obj;
     MqttPendResp *pend_resp = send_option->pend_resp;
 #ifdef WOLFMQTT_NONBLOCK
+    if (client->net->get_timer_ms != NULL) {
+        /* Track elapsed time with no activity and trigger timeout */
+        rc = MqttClient_CheckTimeout(rc, &obj->stat.start_time_ms,
+            send_option->timeout_ms, client->net->get_timer_ms());
+        if (rc == MQTT_CODE_ERROR_TIMEOUT) {
+        #ifdef WOLFMQTT_DEBUG_CLIENT
+            PRINTF("Timeout timer %d ms stat on_wait_type:%d, read:%d write:%d type:%d packet_id:%d",
+                send_option->timeout_ms,
+                obj->stat.on_wait_type, obj->stat.read, obj->stat.write,
+                send_option->send_packet_type, send_option->packet_id);
+        #endif
+        }
+    }
     if (rc == MQTT_CODE_CONTINUE)
         return rc;
 #endif
@@ -1926,8 +1939,24 @@ int MqttClient_PropsFree(MqttProp *head)
 int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
         int timeout_ms)
 {
-    return MqttClient_WaitType(client, msg, MQTT_PACKET_TYPE_ANY, 0,
+    int rc = MqttClient_WaitType(client, msg, MQTT_PACKET_TYPE_ANY, 0,
         timeout_ms);
+
+#ifdef WOLFMQTT_NONBLOCK
+    if (client->net->get_timer_ms != NULL
+        && rc == MQTT_CODE_CONTINUE
+        && client->packet.buf_len == 0) {
+        /* Track elapsed time with no activity and trigger timeout */
+        rc = MqttClient_CheckTimeout(rc, &client->start_time_ms,
+            timeout_ms, client->net->get_timer_ms());
+    }
+    if (rc == MQTT_CODE_CONTINUE) {
+        return rc;
+    }
+#endif
+
+    MqttClient_ResetReadState(client, &msg->stat);
+    return rc;
 }
 int MqttClient_WaitMessage(MqttClient *client, int timeout_ms)
 {

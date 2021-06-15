@@ -144,6 +144,9 @@ typedef struct _MqttClient {
     MqttTls      tls;   /* WolfSSL context for TLS */
 #endif
 
+#ifdef WOLFMQTT_NONBLOCK
+    word32       start_time_ms; /* used for keep-alive */
+#endif
     MqttPkRead   packet;
     MqttSk       read;
     MqttSk       write;
