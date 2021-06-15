@@ -189,6 +189,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
             /* Build connect packet */
             XMEMSET(&mqttCtx->connect, 0, sizeof(MqttConnect));
             mqttCtx->connect.keep_alive_sec = mqttCtx->keep_alive_sec;
+            mqttCtx->connect.timeout_ms = mqttCtx->connect_timeout_ms;
             mqttCtx->connect.clean_session = mqttCtx->clean_session;
             mqttCtx->connect.client_id = mqttCtx->client_id;
 
