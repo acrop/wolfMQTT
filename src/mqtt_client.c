@@ -1507,7 +1507,11 @@ int MqttClient_Connect(MqttClient *client, MqttConnect *mc_connect)
 #ifdef WOLFMQTT_MULTITHREAD
     send_option.pend_resp = &mc_connect->pendResp;
 #endif
-    send_option.timeout_ms = client->cmd_timeout_ms;
+    if (mc_connect->timeout_ms == 0) {
+        send_option.timeout_ms = client->cmd_timeout_ms;
+    } else {
+        send_option.timeout_ms = mc_connect->timeout_ms;
+    }
 
     if (!mc_connect->stat.on_wait_type) {
     #ifdef WOLFMQTT_V5
