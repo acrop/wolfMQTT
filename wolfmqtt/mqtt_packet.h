@@ -442,6 +442,11 @@ typedef struct _MqttConnect {
 #endif
 
     word16      keep_alive_sec;
+
+    /* Connect timeout contains the socket connect time when in
+     * non-blocking mode, so we add this option.
+     * Default to 0 means use client->cmd_timeout_ms as the timeout value */
+    word32      timeout_ms;
     byte        clean_session;
     const char *client_id;
 
