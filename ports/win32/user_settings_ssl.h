@@ -76,8 +76,8 @@ extern "C" {
     #define WOLFSSL_HAVE_SP_RSA
     #define WOLFSSL_HAVE_SP_DH
     #define WOLFSSL_HAVE_SP_ECC
-    //#define WOLFSSL_SP_4096 /* Enable RSA/RH 4096-bit support */
-    //#define WOLFSSL_SP_384 /* Enable ECC 384-bit SECP384R1 support */
+    #define WOLFSSL_SP_4096 /* Enable RSA/RH 4096-bit support */
+    #define WOLFSSL_SP_384 /* Enable ECC 384-bit SECP384R1 support */
 
     //#define WOLFSSL_SP_CACHE_RESISTANT
     #define WOLFSSL_SP_MATH     /* only SP math - disables integer.c/tfm.c */
@@ -89,12 +89,12 @@ extern "C" {
     #ifdef TARGET_EMBEDDED
         /* use smaller version of code */
         #define WOLFSSL_SP_SMALL
+    #elif defined(_WIN32)
+        #define WOLFSSL_SP_SMALL
     #else
         /* SP Assembly Speedups - specific to chip type */
         #define WOLFSSL_SP_ASM
     #endif
-    //#define WOLFSSL_SP_X86_64
-    //#define WOLFSSL_SP_X86
     //#define WOLFSSL_SP_ARM32_ASM
     //#define WOLFSSL_SP_ARM64_ASM
     //#define WOLFSSL_SP_ARM_THUMB_ASM
@@ -239,7 +239,7 @@ extern "C" {
 /* Ed25519 / Curve25519 */
 #undef HAVE_CURVE25519
 #undef HAVE_ED25519
-#if 0
+#if 1
     #define HAVE_CURVE25519
     #define HAVE_ED25519 /* ED25519 Requires SHA512 */
 
@@ -278,12 +278,12 @@ extern "C" {
 
 /* Sha512 */
 #undef WOLFSSL_SHA512
-#if 0
+#if 1
     #define WOLFSSL_SHA512
 
     /* Sha384 */
     #undef  WOLFSSL_SHA384
-    #if 0
+    #if 1
         #define WOLFSSL_SHA384
     #endif
 
@@ -498,6 +498,11 @@ extern "C" {
     #define NO_SESSION_CACHE
 #endif
 
+/* for static ciphers */
+#define WOLFSSL_STATIC_RSA
+// #define WOLFSSL_STATIC_PSK
+// #define WOLFSSL_STATIC_EPHEMERAL
+// #define WOLFSSL_SNIFFER
 
 /* ------------------------------------------------------------------------- */
 /* Disable Features */
