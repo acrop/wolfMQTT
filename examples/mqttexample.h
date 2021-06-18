@@ -76,11 +76,9 @@
 #define DEFAULT_TOPIC_ALIAS_MAX 16
 #define DEFAULT_MESSAGE         "test"
 
-#ifdef WOLFMQTT_V5
 #if !defined(WOLFMQTT_MAX_PACKET_SIZE)
-#define WOLFMQTT_MAX_PACKET_SIZE      768 /* The max MQTT control packet size the
-                                       client is willing to accept. */
-#endif
+/* The max MQTT control packet size the client is willing to accept. */
+#define WOLFMQTT_MAX_PACKET_SIZE      768
 #endif
 
 /* Default MQTT host broker to use, when none is specified in the examples */
