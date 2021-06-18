@@ -220,6 +220,10 @@ WOLFMQTT_API int MqttClient_Init(
  */
 WOLFMQTT_API void MqttClient_DeInit(MqttClient *client);
 
+#ifdef WOLFMQTT_MULTITHREAD
+WOLFMQTT_API int MqttClient_RespList_Reset(MqttClient *client);
+#endif
+
 #ifdef WOLFMQTT_DISCONNECT_CB
 /*! \brief      Sets a disconnect callback with custom context
  *  \param      client      Pointer to MqttClient structure

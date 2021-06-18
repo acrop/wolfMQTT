@@ -158,6 +158,17 @@ static int MqttClient_Publish_ReadPayload(MqttClient* client,
 
 #endif
 
+int MqttClient_RespList_Reset(MqttClient *client)
+{
+    int rc = wm_SemLock(&client->lockClient);
+    if (rc == 0) {
+        client->firstPendResp = NULL;
+        client->lastPendResp = NULL;
+        wm_SemUnlock(&client->lockClient);
+    }
+    return rc;
+}
+
 static byte MqttClient_RespList_Empty(MqttClient *client)
 {
     byte empty = 1;
