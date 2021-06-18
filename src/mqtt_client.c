@@ -144,6 +144,19 @@ static int MqttClient_Publish_ReadPayload(MqttClient* client,
 
 #endif
 
+static byte MqttClient_RespList_Empty(MqttClient *client)
+{
+    byte empty = 1;
+    int rc = wm_SemLock(&client->lockClient);
+    if (rc == 0) {
+        if (client->firstPendResp != NULL) {
+            empty = 0;
+        }
+        wm_SemUnlock(&client->lockClient);
+    }
+    return empty;
+}
+
 /* These RespList functions assume caller has locked client->lockClient mutex */
 static int MqttClient_RespList_Add(MqttClient *client,
     MqttPacketType packet_type, word16 packet_id, MqttPendResp *newResp,
@@ -814,6 +827,15 @@ wait_again:
                 return rc;
             }
             mms_stat->read_locked = 1;
+
+            if (wait_type == MQTT_PACKET_TYPE_ANY) {
+                /* If the resp list not empty means other threads are
+                waiting for specific mqtt packet type, we should let them
+                reading first */
+                if (!MqttClient_RespList_Empty(client)) {
+                    break;
+                }
+            }
         #endif
 
             /* reset the packet state */
