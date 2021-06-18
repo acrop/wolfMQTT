@@ -24,7 +24,7 @@
 
 /* MQTT v5.0 support */
 #undef WOLFMQTT_V5
-#if 1
+#if 0
   #define WOLFMQTT_V5
 #endif
 
