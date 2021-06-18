@@ -114,8 +114,18 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
     byte msg_new, byte msg_done)
 {
     byte buf[PRINT_BUFFER_SIZE+1];
+    byte msg_buf[PRINT_BUFFER_SIZE+1];
     word32 len;
     MQTTCtx* mqttCtx = (MQTTCtx*)client->ctx;
+
+    /* Print message payload */
+    len = msg->buffer_len;
+    if (len > PRINT_BUFFER_SIZE) {
+        len = PRINT_BUFFER_SIZE;
+    }
+    XMEMCPY(msg_buf, msg->buffer, len);
+    msg_buf[len] = '\0'; /* Make sure its null terminated */
+
     (void)mqttCtx;
 
     if (msg_new) {
@@ -128,8 +138,8 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
         buf[len] = '\0'; /* Make sure its null terminated */
 
         /* Print incoming message */
-        PRINTF("MQTT Message: Topic %s, Qos %d, Id %d, Len %u Payload:%s",
-            buf, msg->qos, msg->packet_id, msg->total_len, msg->buffer);
+        PRINTF("MQTT Message: Topic %s, Qos %d, Id %d, Len %u Payload:%s done:%d",
+            buf, msg->qos, msg->packet_id, msg->total_len, msg_buf, msg_done);
 
         /* for test mode: count the number of TEST_MESSAGE matches received */
         if (mqttCtx->test_mode) {
@@ -144,20 +154,9 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
                 }
             }
         }
-    }
-
-    /* Print message payload */
-    len = msg->buffer_len;
-    if (len > PRINT_BUFFER_SIZE) {
-        len = PRINT_BUFFER_SIZE;
-    }
-    XMEMCPY(buf, msg->buffer, len);
-    buf[len] = '\0'; /* Make sure its null terminated */
-    PRINTF("Payload (%d - %d): %s",
-        msg->buffer_pos, msg->buffer_pos + len, buf);
-
-    if (msg_done) {
-        PRINTF("MQTT Message: Done");
+    } else {
+        PRINTF("MQTT Message: Payload (%d - %d): %s done:%d",
+            msg->buffer_pos, msg->buffer_pos + len, msg_buf, msg_done);
     }
 
     /* Return negative to terminate publish processing */
