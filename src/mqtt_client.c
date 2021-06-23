@@ -974,6 +974,11 @@ wait_again:
         return rc;
     }
 
+    if (wait_type == MQTT_PACKET_TYPE_ANY)
+    {
+        return rc;
+    }
+
     if (!waitMatchFound) {
         /* if we get here, then the we are still waiting for a packet */
         goto wait_again;
