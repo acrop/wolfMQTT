@@ -954,12 +954,12 @@ wait_again:
     } /* switch (mms_stat->read) */
 
 #ifdef WOLFMQTT_NONBLOCK
-    if (rc != MQTT_CODE_CONTINUE)
+    if (rc == MQTT_CODE_CONTINUE)
+        return rc;
 #endif
-    {
-        /* reset state */
-        mms_stat->read = MQTT_MSG_BEGIN;
-    }
+
+    /* reset state */
+    mms_stat->read = MQTT_MSG_BEGIN;
 
 #ifdef WOLFMQTT_MULTITHREAD
     if (mms_stat->read_locked) {
