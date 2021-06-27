@@ -177,10 +177,12 @@ int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, const uin
         if (mqttCtx->stat == WMQ_WAIT_MSG) {
             break;
         }
+        sys_msleep(1);
     }
 
     do {
         rc = MqttClient_Publish(&mqttCtx->client, &publish);
+        sys_msleep(1);
     } while (rc == MQTT_CODE_CONTINUE);
     if (rc != MQTT_CODE_SUCCESS) {
         mqttCtx->stat = WMQ_NET_DISCONNECT;
