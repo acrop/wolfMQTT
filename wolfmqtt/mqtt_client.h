@@ -254,6 +254,10 @@ WOLFMQTT_API int MqttClient_SetPropertyCallback(
     void* ctx);
 #endif
 
+#ifdef WOLFMQTT_NONBLOCK
+WOLFMQTT_API int MqttClient_CheckTimeout(int rc, word32* start_ms, word32 timeout_ms, word32 now_ms);
+#endif
+
 /*! \brief      Encodes and sends the MQTT Connect packet and waits for the
                 Connect Acknowledgment packet
  *  \discussion This is a blocking function that will wait for MqttNet.read

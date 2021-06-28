@@ -242,6 +242,7 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
     switch (mqttCtx->stat) {
         case WMQ_BEGIN:
         {
+            mqttCtx->connect_start_time_ms = 0;
             FALL_THROUGH;
         }
 
@@ -253,6 +254,9 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
             rc = MqttClient_NetConnect(&mqttCtx->client, mqttCtx->host,
                    mqttCtx->port,
                 mqttCtx->connect_timeout_ms, mqttCtx->use_tls, mqttCtx->tls_cb);
+                /* Track elapsed time with no activity and trigger timeout */
+            rc = MqttClient_CheckTimeout(rc, &mqttCtx->connect_start_time_ms,
+                mqttCtx->connect_timeout_ms, mqttCtx->client.net->get_timer_ms());
             if (rc == MQTT_CODE_CONTINUE) {
                 return rc;
             }

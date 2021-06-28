@@ -350,7 +350,7 @@ static int MqttClient_RespListUpdate(MqttClient *client,
 #endif /* WOLFMQTT_MULTITHREAD */
 
 #ifdef WOLFMQTT_NONBLOCK
-static int MqttClient_CheckTimeout(int rc, word32* start_ms, word32 timeout_ms, word32 now_ms)
+int MqttClient_CheckTimeout(int rc, word32* start_ms, word32 timeout_ms, word32 now_ms)
 {
     word32 elapsed_ms;
 
