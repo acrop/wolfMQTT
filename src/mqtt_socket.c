@@ -405,7 +405,6 @@ int MqttSocket_Connect(MqttClient *client, const char* host, word16 port,
         ssl_rc = wolfSSL_connect(client->tls.ssl);
         if (ssl_rc != WOLFSSL_SUCCESS) {
             rc = MQTT_CODE_ERROR_TLS_CONNECT;
-            PRINTF("wolfSSL_connect result: %d", ssl_rc);
             goto exit;
         }
 
