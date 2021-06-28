@@ -451,7 +451,7 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
             do {
                 /* Try and read packet */
                 rc = MqttClient_WaitMessage(&mqttCtx->client,
-                    ((word32)mqttCtx->keep_alive_sec * 0.8) * 1000);
+                    ((word32)mqttCtx->keep_alive_sec * 0.5) * 1000);
 
                 /* check return code */
                 if (rc == MQTT_CODE_CONTINUE) {
