@@ -211,7 +211,8 @@ static int MqttSocket_ReadDo(MqttClient *client, byte* buf, int buf_len,
         #ifdef WOLFMQTT_DEBUG_SOCKET
             int error = wolfSSL_get_error(client->tls.ssl, 0);
             if (error != WOLFSSL_ERROR_WANT_READ) {
-                PRINTF("MqttSocket_Read: SSL Error=%d", error);
+                PRINTF("MqttSocket_Read: SSL Error=%d sockReadRc=%d",
+                    error, client->tls.sockReadRc);
             }
         #endif
 
