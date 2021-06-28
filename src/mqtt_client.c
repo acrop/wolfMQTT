@@ -721,8 +721,10 @@ static void MqttClient_ResetReadState(MqttClient* client, MqttMsgStatFull *stat)
          * 0 then we can trigger timeout check for keep alive */
         client->packet.buf_len = 0;
 
-        /* Reset client->msg */
-        XMEMSET(&client->msg, 0, sizeof(client->msg));
+        if (&(client->msg.stat) == stat) {
+            /* Reset client->msg */
+            XMEMSET(&client->msg, 0, sizeof(client->msg));
+        }
 #ifdef WOLFMQTT_MULTITHREAD
         wm_SemUnlock(&client->lockRecv);
 #endif
@@ -851,11 +853,13 @@ static int MqttClient_MsgStateUpdate(int rc,
         rc = MqttClient_CheckTimeout(rc, &obj->stat.start_time_ms,
             send_option->timeout_ms, client->net->get_timer_ms());
         if (rc == MQTT_CODE_ERROR_TIMEOUT) {
-        #ifdef WOLFMQTT_DEBUG_CLIENT
-            PRINTF("Timeout timer %d ms stat on_wait_type:%d, read:%d write:%d type:%d packet_id:%d",
+        #ifdef WOLFMQTT_DEBUG_THREAD
+            PRINTF("Timeout timer %d ms stat on_wait_type:%d, read:%d write:%d type:%d packet_id:%d"
+                " read_locked:%d write_locked:%d",
                 send_option->timeout_ms,
                 obj->stat.on_wait_type, obj->stat.read, obj->stat.write,
-                send_option->send_packet_type, send_option->packet_id);
+                send_option->send_packet_type, send_option->packet_id,
+                obj->stat.read_locked, obj->stat.write_locked);
         #endif
         }
     }
