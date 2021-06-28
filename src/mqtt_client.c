@@ -721,6 +721,7 @@ static void MqttClient_ResetReadState(MqttClient* client, MqttMsgStatFull *stat)
          * 0 then we can trigger timeout check for keep alive */
         client->packet.buf_len = 0;
 
+        /* Only when client->msg are used this time, then reset it */
         if (&(client->msg.stat) == stat) {
             /* Reset client->msg */
             XMEMSET(&client->msg, 0, sizeof(client->msg));
