@@ -469,7 +469,8 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
                 if (rc == MQTT_CODE_ERROR_TIMEOUT) {
                     /* Need to send keep-alive ping */
                     rc = MQTT_CODE_CONTINUE;
-                    PRINTF("Keep-alive timeout, sending ping");
+                    PRINTF("Keep-alive timeout at %d, sending ping",
+                        mqttCtx->client.net->get_timer_ms());
                     mqttCtx->stat = WMQ_PING;
                     return rc;
                 }
@@ -503,8 +504,9 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
                 return rc;
             }
             else if (rc != MQTT_CODE_SUCCESS) {
-                PRINTF("MQTT Ping Keep Alive Error: %s (%d)",
-                    MqttClient_ReturnCodeToString(rc), rc);
+                PRINTF("MQTT Ping Keep Alive Error: %s (%d) at %d",
+                    MqttClient_ReturnCodeToString(rc), rc,
+                    mqttCtx->client.net->get_timer_ms());
                 break;
             }
 
