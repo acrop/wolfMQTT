@@ -289,7 +289,10 @@ static int MqttClient_RespList_Find(MqttClient *client,
          tmpResp != NULL;
          tmpResp = tmpResp->next)
     {
-        if (packet_type == tmpResp->packet_type &&
+        if (packet_type == MQTT_PACKET_TYPE_CLEAR) {
+            tmpResp->packetDone = 1;
+            tmpResp->packet_ret = MQTT_CODE_ERROR_NETWORK;
+        } else if (packet_type == tmpResp->packet_type &&
            (packet_id == tmpResp->packet_id))
         {
         #ifdef WOLFMQTT_DEBUG_CLIENT
@@ -305,6 +308,15 @@ static int MqttClient_RespList_Find(MqttClient *client,
         }
     }
     return rc;
+}
+
+static void MqttClient_RespListClear(MqttClient *client)
+{
+    int rc = wm_SemLock(&client->lockClient);
+    if (rc == MQTT_CODE_SUCCESS) {
+        MqttClient_RespList_Find(client, MQTT_PACKET_TYPE_CLEAR, 0, NULL);
+        wm_SemUnlock(&client->lockClient);
+    }
 }
 
 static int MqttClient_RespListUpdate(MqttClient *client,
@@ -340,6 +352,11 @@ static int MqttClient_RespListUpdate(MqttClient *client,
 int MqttClient_CheckTimeout(int rc, word32* start_ms, word32 timeout_ms, word32 now_ms)
 {
     word32 elapsed_ms;
+
+    /* Disable timeout check */
+    if (timeout_ms == (word32)-1) {
+        return rc;
+    }
 
     /* If is not continue */
     if (rc != MQTT_CODE_CONTINUE)
@@ -2012,6 +2029,7 @@ int MqttClient_NetConnect(MqttClient *client, const char* host,
 
 int MqttClient_NetDisconnect(MqttClient *client)
 {
+    MqttClient_RespListClear(client);
     return MqttSocket_Disconnect(client);
 }
 
