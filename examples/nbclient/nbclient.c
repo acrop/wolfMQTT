@@ -45,18 +45,27 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
 
     if (msg_new) {
         word16 topic_len = msg->topic_name_len;
-        word32 payload_len = msg->buffer_len;
+        word32 payload_len = msg->total_len;
         // total_len = sigma of (word32 topic_len:word16, body_len:word32, topic, \0, body, \0)
         word32 total_len = sizeof(word32) + sizeof(topic_len) + topic_len + 1 + payload_len + 1;
-        word32 write_available = ringbuf_write_available(&mqttCtx->on_message_rb);
-        if (write_available >= total_len) {
-            ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&total_len, sizeof(total_len));
-            ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&topic_len, sizeof(topic_len));
-            ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)msg->topic_name, topic_len);
-            ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)"\0", 1);
-            ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)msg->buffer, payload_len);
-            ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)"\0", 1);
+        if (total_len > mqttCtx->on_message_rb.capacity) {
+            return -1;
         }
+        for (;;) {
+            word32 write_available = ringbuf_write_available(&mqttCtx->on_message_rb);
+            if (write_available >= total_len) {
+                break;
+            }
+            mqttCtx->sleep_ms_cb(mqttCtx->app_ctx, 1);
+        }
+        ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&total_len, sizeof(total_len));
+        ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&topic_len, sizeof(topic_len));
+        ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)msg->topic_name, topic_len);
+        ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)"\0", 1);
+    }
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)msg->buffer, msg->buffer_len);
+    if (msg_done) {
+        ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)"\0", 1);
     }
 
     /* Return negative to terminate publish processing */
