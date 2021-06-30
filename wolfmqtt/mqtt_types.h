@@ -172,6 +172,7 @@ enum MqttPacketResponseCodes {
 
     MQTT_CODE_CONTINUE = -101,
     MQTT_CODE_STDIN_WAKE = -102,
+    MQTT_CODE_CONTINUE_CHUNK = -103,
 };
 
 
