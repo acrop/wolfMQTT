@@ -171,7 +171,7 @@ int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, word32 ti
     publish.topic_name = topic;
     publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
     publish.buffer = (byte*)content;
-    publish.total_len = (word16)len;
+    publish.total_len = (word32)len;
     publish.timeout_ms = timeout_ms;
 
     for (;;) {
