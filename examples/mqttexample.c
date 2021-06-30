@@ -177,10 +177,16 @@ int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, const uin
         if (mqttCtx->stat == WMQ_WAIT_MSG) {
             break;
         }
+        if (mqttCtx->sleep_ms_cb) {
+            mqttCtx->sleep_ms_cb(mqttCtx->app_ctx, 1);
+        }
     }
 
     do {
         rc = MqttClient_Publish(&mqttCtx->client, &publish);
+        if (mqttCtx->sleep_ms_cb) {
+            mqttCtx->sleep_ms_cb(mqttCtx->app_ctx, 1);
+        }
     } while (rc == MQTT_CODE_CONTINUE);
     if (rc != MQTT_CODE_SUCCESS) {
         mqttCtx->stat = WMQ_NET_DISCONNECT;

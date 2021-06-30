@@ -350,7 +350,7 @@ static int MqttClient_RespListUpdate(MqttClient *client,
 #endif /* WOLFMQTT_MULTITHREAD */
 
 #ifdef WOLFMQTT_NONBLOCK
-static int MqttClient_CheckTimeout(int rc, word32* start_ms, word32 timeout_ms, word32 now_ms)
+int MqttClient_CheckTimeout(int rc, word32* start_ms, word32 timeout_ms, word32 now_ms)
 {
     word32 elapsed_ms;
 
@@ -409,6 +409,13 @@ static int MqttClient_DecodePacket(MqttClient* client, byte* rx_buf,
     /* must have rx buffer with at least 2 byes for header */
     if (rx_buf == NULL || rx_len < MQTT_PACKET_HEADER_MIN_SIZE) {
         return MQTT_CODE_ERROR_BAD_ARG;
+    }
+
+    if (packet_obj == &client->msg) {
+        byte *msg_ptr = (byte*)&client->msg;
+        size_t offset = sizeof(client->msg.stat);
+        /* XMEMSET the body first */
+        XMEMSET(msg_ptr + offset, 0, sizeof(client->msg) - offset);
     }
 
     /* Decode header */
@@ -717,12 +724,7 @@ static void MqttClient_ResetReadState(MqttClient* client, MqttMsgStatFull *stat)
         stat->read_locked = 0;
         /* reset the packet state */
         client->packet.stat = MQTT_PK_BEGIN;
-        /* Clean the length read. So when the length read is
-         * 0 then we can trigger timeout check for keep alive */
         client->packet.buf_len = 0;
-
-        /* Reset client->msg */
-        XMEMSET(&client->msg, 0, sizeof(client->msg));
 #ifdef WOLFMQTT_MULTITHREAD
         wm_SemUnlock(&client->lockRecv);
 #endif
@@ -851,11 +853,13 @@ static int MqttClient_MsgStateUpdate(int rc,
         rc = MqttClient_CheckTimeout(rc, &obj->stat.start_time_ms,
             send_option->timeout_ms, client->net->get_timer_ms());
         if (rc == MQTT_CODE_ERROR_TIMEOUT) {
-        #ifdef WOLFMQTT_DEBUG_CLIENT
-            PRINTF("Timeout timer %d ms stat on_wait_type:%d, read:%d write:%d type:%d packet_id:%d",
+        #ifdef WOLFMQTT_DEBUG_THREAD
+            PRINTF("Timeout timer %d ms stat on_wait_type:%d, read:%d write:%d type:%d packet_id:%d"
+                " read_locked:%d write_locked:%d",
                 send_option->timeout_ms,
                 obj->stat.on_wait_type, obj->stat.read, obj->stat.write,
-                send_option->send_packet_type, send_option->packet_id);
+                send_option->send_packet_type, send_option->packet_id,
+                obj->stat.read_locked, obj->stat.write_locked);
         #endif
         }
     }
@@ -909,6 +913,7 @@ static int MqttClient_HandlePacket(MqttClient* client,
     MqttQoS packet_qos = MQTT_QOS_0;
     word16 packet_id = 0;
     MqttSendObjectOption send_option;
+    MqttObject *obj = packet_obj;
 
     if (client == NULL || packet_obj == NULL) {
         return MQTT_CODE_ERROR_BAD_ARG;
@@ -984,7 +989,7 @@ static int MqttClient_HandlePacket(MqttClient* client,
         case MQTT_PACKET_TYPE_PUBLISH_REC:
         case MQTT_PACKET_TYPE_PUBLISH_REL: {
             rc = MqttClient_DecodePacket(client, client->rx_buf,
-                client->packet.buf_len, &client->publish_resp, &packet_type,
+                client->packet.buf_len, &client->msg, &packet_type,
                 &packet_qos, &packet_id);
 
             packet_type = (MqttPacketType)((int)packet_type+1); /* next ack */
@@ -1958,18 +1963,25 @@ int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
         timeout_ms);
 
 #ifdef WOLFMQTT_NONBLOCK
-    if (client->net->get_timer_ms != NULL
-        && rc == MQTT_CODE_CONTINUE
-        && client->packet.buf_len == 0) {
-        /* Track elapsed time with no activity and trigger timeout */
-        rc = MqttClient_CheckTimeout(rc, &client->start_time_ms,
-            timeout_ms, client->net->get_timer_ms());
+    if (client->net->get_timer_ms != NULL) {
+        if (rc == MQTT_CODE_SUCCESS) {
+            /* Track elapsed time with no activity and trigger keep-alive timeout */
+            int check_alive_rc =MqttClient_CheckTimeout(MQTT_CODE_CONTINUE, &client->start_time_ms,
+                timeout_ms, client->net->get_timer_ms());
+            if (check_alive_rc == MQTT_CODE_ERROR_TIMEOUT) {
+                rc = MQTT_CODE_ERROR_TIMEOUT_KEEP_ALIVE;
+            }
+        } else if (rc == MQTT_CODE_CONTINUE) {
+            /* Track elapsed time with no activity and trigger timeout */
+            rc = MqttClient_CheckTimeout(rc, &client->wait_message_start_time_ms,
+                timeout_ms, client->net->get_timer_ms());
+        }
     }
     if (rc == MQTT_CODE_CONTINUE) {
         return rc;
     }
 #endif
-
+    client->wait_message_start_time_ms = 0;
     MqttClient_ResetReadState(client, &msg->stat);
     return rc;
 }
@@ -2060,6 +2072,8 @@ const char* MqttClient_ReturnCodeToString(int return_code)
             return "Error (DNS Resolve Failed)";
         case MQTT_CODE_ERROR_ROUTE_TO_HOST:
             return "Error (No route to host)";
+        case MQTT_CODE_ERROR_TIMEOUT_KEEP_ALIVE:
+            return "Error (Keep Alive Timeout)";
     }
     return "Unknown";
 }

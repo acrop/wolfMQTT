@@ -242,6 +242,7 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
     switch (mqttCtx->stat) {
         case WMQ_BEGIN:
         {
+            mqttCtx->connect_start_time_ms = 0;
             FALL_THROUGH;
         }
 
@@ -253,6 +254,9 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
             rc = MqttClient_NetConnect(&mqttCtx->client, mqttCtx->host,
                    mqttCtx->port,
                 mqttCtx->connect_timeout_ms, mqttCtx->use_tls, mqttCtx->tls_cb);
+            /* Track elapsed time with no activity and trigger timeout */
+            rc = MqttClient_CheckTimeout(rc, &mqttCtx->connect_start_time_ms,
+                mqttCtx->connect_timeout_ms, mqttCtx->client.net->get_timer_ms());
             if (rc == MQTT_CODE_CONTINUE) {
                 return rc;
             }
@@ -447,7 +451,7 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
             do {
                 /* Try and read packet */
                 rc = MqttClient_WaitMessage(&mqttCtx->client,
-                    ((word32)mqttCtx->keep_alive_sec * 0.8) * 1000);
+                    ((word32)mqttCtx->keep_alive_sec * 0.5) * 1000);
 
                 /* check return code */
                 if (rc == MQTT_CODE_CONTINUE) {
@@ -466,10 +470,11 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
                     return rc;
                 }
 
-                if (rc == MQTT_CODE_ERROR_TIMEOUT) {
+                if (rc == MQTT_CODE_ERROR_TIMEOUT_KEEP_ALIVE) {
                     /* Need to send keep-alive ping */
                     rc = MQTT_CODE_CONTINUE;
-                    PRINTF("Keep-alive timeout, sending ping");
+                    PRINTF("Keep-alive timeout at %d, sending ping",
+                        mqttCtx->client.net->get_timer_ms());
                     mqttCtx->stat = WMQ_PING;
                     return rc;
                 }
@@ -503,8 +508,9 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
                 return rc;
             }
             else if (rc != MQTT_CODE_SUCCESS) {
-                PRINTF("MQTT Ping Keep Alive Error: %s (%d)",
-                    MqttClient_ReturnCodeToString(rc), rc);
+                PRINTF("MQTT Ping Keep Alive Error: %s (%d) at %d",
+                    MqttClient_ReturnCodeToString(rc), rc,
+                    mqttCtx->client.net->get_timer_ms());
                 break;
             }
 

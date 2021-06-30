@@ -106,6 +106,8 @@ typedef enum _MQTTCtxState {
     WMQ_DONE
 } MQTTCtxState;
 
+typedef void (*MqttSleepMs)(void *app_ctx, word32);
+
 /* MQTT Client context */
 /* This is used for the examples as reference */
 /* Use of this structure allow non-blocking context */
@@ -118,6 +120,7 @@ typedef struct _MQTTCtx {
     MqttClient client;
     MqttNet net;
     MqttTlsCb tls_cb;
+    MqttSleepMs sleep_ms_cb;
 
     byte stopped; /* Setting stopped to 1 to stop the non blocking state machine */
 
@@ -168,6 +171,7 @@ typedef struct _MQTTCtx {
 #ifdef WOLFMQTT_V5
     word32 max_packet_size;
 #endif
+    word32 connect_start_time_ms;
     word32 connect_timeout_ms;
     word32 cmd_timeout_ms;
     word16 keep_alive_sec;
