@@ -146,7 +146,7 @@ typedef struct _MqttClient {
 
 #ifdef WOLFMQTT_NONBLOCK
     word32       start_time_ms; /* used for keep-alive */
-    word32       wait_message_start_time_ms; /* used for wait published message */
+    word32       read_time_ms; /* Used to monitor data received */
 #endif
     MqttPkRead   packet;
     MqttSk       read;

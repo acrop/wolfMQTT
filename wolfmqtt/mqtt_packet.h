@@ -303,9 +303,6 @@ typedef struct _MqttMsgStatFull {
     word16 packet_type;
     word32 packet_id;
 #endif
-#ifdef WOLFMQTT_NONBLOCK
-    word32      start_time_ms;
-#endif
 } MqttMsgStatFull;
 
 #ifdef WOLFMQTT_MULTITHREAD

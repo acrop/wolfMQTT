@@ -850,7 +850,7 @@ static int MqttClient_MsgStateUpdate(int rc,
 #ifdef WOLFMQTT_NONBLOCK
     if (client->net->get_timer_ms != NULL) {
         /* Track elapsed time with no activity and trigger timeout */
-        rc = MqttClient_CheckTimeout(rc, &obj->stat.start_time_ms,
+        rc = MqttClient_CheckTimeout(rc, &client->read_time_ms,
             send_option->timeout_ms, client->net->get_timer_ms());
         if (rc == MQTT_CODE_ERROR_TIMEOUT) {
         #ifdef WOLFMQTT_DEBUG_THREAD
@@ -1984,7 +1984,7 @@ int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
             }
         } else if (rc == MQTT_CODE_CONTINUE) {
             /* Track elapsed time with no activity and trigger timeout */
-            rc = MqttClient_CheckTimeout(rc, &client->wait_message_start_time_ms,
+            rc = MqttClient_CheckTimeout(rc, &client->read_time_ms,
                 timeout_ms, client->net->get_timer_ms());
         }
     }
@@ -1992,7 +1992,7 @@ int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
         return rc;
     }
 #endif
-    client->wait_message_start_time_ms = 0;
+    client->read_time_ms = 0;
     MqttClient_ResetReadState(client, &msg->stat);
     return rc;
 }

@@ -226,6 +226,10 @@ static int MqttSocket_ReadDo(MqttClient *client, byte* buf, int buf_len,
         rc = client->net->read(client->net->context, buf, buf_len, timeout_ms);
     }
 
+    if (rc > 0) {
+        client->read_time_ms = 0;
+    }
+
 #ifdef WOLFMQTT_DEBUG_SOCKET
     if (rc != 0 && rc != MQTT_CODE_CONTINUE) { /* hide in non-blocking case */
         PRINTF("MqttSocket_Read: Len=%d, Rc=%d", buf_len, rc);
