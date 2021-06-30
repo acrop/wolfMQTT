@@ -169,19 +169,6 @@ int MqttClient_RespList_Reset(MqttClient *client)
     return rc;
 }
 
-static byte MqttClient_RespList_Empty(MqttClient *client)
-{
-    byte empty = 1;
-    int rc = wm_SemLock(&client->lockClient);
-    if (rc == 0) {
-        if (client->firstPendResp != NULL) {
-            empty = 0;
-        }
-        wm_SemUnlock(&client->lockClient);
-    }
-    return empty;
-}
-
 /* These RespList functions assume caller has locked client->lockClient mutex */
 static int MqttClient_RespList_Add(MqttClient *client,
     MqttPacketType packet_type, word16 packet_id, MqttPendResp *newResp,
@@ -712,6 +699,28 @@ static int MqttClient_Publish_WritePayload(MqttClient *client,
 
 static int MqttClient_WaitType(MqttClient *client, void *packet_obj,
     byte wait_type, word16 wait_packet_id, int timeout_ms);
+static int MqttClient_WaitAck(MqttClient *client, void *packet_obj,
+    byte wait_type, word16 wait_packet_id, int timeout_ms)
+{
+    int rc = MQTT_CODE_SUCCESS;
+    int waitMatchFound = 0;
+#ifdef WOLFMQTT_MULTITHREAD
+    for (;;) {
+        rc = MqttClient_RespListUpdate(client, wait_type, wait_packet_id, &waitMatchFound);
+        if (rc < 0) {
+            return rc;
+        }
+        if (waitMatchFound == 1) {
+            return MQTT_CODE_SUCCESS;
+        }
+#ifdef WOLFMQTT_NONBLOCK
+        return MQTT_CODE_CONTINUE;
+#endif
+        /* continue waiting */
+    }
+#endif /* WOLFMQTT_MULTITHREAD */
+    return rc;
+}
 
 static void MqttClient_ResetReadState(MqttClient* client, MqttMsgStatFull *stat)
 {
@@ -779,7 +788,8 @@ static int MqttClient_SendObject(MqttClient* client, MqttSendObjectOption *optio
         client->write.len = rc;
         rc = MQTT_CODE_SUCCESS;
     #ifdef WOLFMQTT_MULTITHREAD
-        if (option->ack_packet_type != MQTT_PACKET_TYPE_RESERVED) {
+        if (option->ack_packet_type != MQTT_PACKET_TYPE_RESERVED
+            && obj != &client->msg) {
             rc = wm_SemLock(&client->lockClient);
             if (rc == 0) {
                 /* inform other threads of expected response */
@@ -900,8 +910,13 @@ static int MqttClient_SendObjectWaitType(MqttClient* client, MqttSendObjectOptio
     }
     if (rc == MQTT_CODE_SUCCESS && obj->stat.on_wait_type) {
         /* Wait for response packet */
-        rc = MqttClient_WaitType(client, option->recv_obj,
-            option->ack_packet_type, option->packet_id, option->timeout_ms);
+        if (obj == &client->msg) {
+            rc = MqttClient_WaitType(client, option->recv_obj,
+                option->ack_packet_type, option->packet_id, option->timeout_ms);
+        } else {
+            rc = MqttClient_WaitAck(client, option->recv_obj,
+                option->ack_packet_type, option->packet_id, option->timeout_ms);
+        }
     }
     return MqttClient_MsgStateUpdate(rc, client, option);
 }
@@ -1129,29 +1144,10 @@ wait_again:
             PRINTF("lock read %d:%d done", mms_stat->packet_type, mms_stat->packet_id);
         #endif
             mms_stat->read_locked = 1;
-
-        #ifdef WOLFMQTT_MULTITHREAD
-            if (wait_type == MQTT_PACKET_TYPE_ANY) {
-                /* If the resp list not empty means other threads are
-                waiting for specific mqtt packet type, we should let them
-                reading first */
-                if (!MqttClient_RespList_Empty(client)) {
-                    break;
-                }
-            }
-        #endif
-
             FALL_THROUGH;
         }
         case MQTT_MSG_WAIT:
         {
-        #ifdef WOLFMQTT_MULTITHREAD
-            rc = MqttClient_RespListUpdate(client, wait_type, wait_packet_id, &waitMatchFound);
-            if (rc < 0 || waitMatchFound == 1) {
-                break;
-            }
-        #endif /* WOLFMQTT_MULTITHREAD */
-
             mms_stat->read = MQTT_MSG_WAIT;
 
             /* Wait for packet */
@@ -1260,10 +1256,6 @@ wait_again:
                     pendResp = NULL;
                     wm_SemUnlock(&client->lockClient);
                 }
-            }
-            rc = MqttClient_RespListUpdate(client, wait_type, wait_packet_id, &waitMatchFound);
-            if (rc < 0 || waitMatchFound == 1) {
-                break;
             }
         #endif /* WOLFMQTT_MULTITHREAD */
             break;

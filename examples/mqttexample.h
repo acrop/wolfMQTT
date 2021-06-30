@@ -124,16 +124,9 @@ typedef struct _MQTTCtx {
 
     byte stopped; /* Setting stopped to 1 to stop the non blocking state machine */
 
-    /* temp mqtt containers */
-    MqttConnect connect;
     MqttMessage lwt_msg;
-    MqttSubscribe subscribe;
-    MqttUnsubscribe unsubscribe;
     MqttTopic *topics;
     word32 topic_count;
-    MqttPublish publish;
-    MqttDisconnect disconnect;
-    MqttPing ping;
 #ifdef WOLFMQTT_SN
     SN_Publish publishSN;
 #endif
