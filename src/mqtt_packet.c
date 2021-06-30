@@ -2000,6 +2000,7 @@ const char* MqttPacket_TypeDesc(MqttPacketType packet_type)
             return "Reserved";
         case MQTT_PACKET_TYPE_ANY:
             return "Any";
+        case MQTT_PACKET_TYPE_CLEAR:
         default:
             break;
     }

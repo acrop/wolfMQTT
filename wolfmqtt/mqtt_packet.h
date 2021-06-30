@@ -223,6 +223,7 @@ typedef struct _MqttTopic {
 #define MQTT_PACKET_TYPE_GET(x)  (((x) >> 4) & 0xF)
 #define MQTT_PACKET_TYPE_SET(x)  (((x) & 0xF) << 4)
 typedef enum _MqttPacketType {
+    MQTT_PACKET_TYPE_CLEAR = -1,
     MQTT_PACKET_TYPE_RESERVED = 0,
     MQTT_PACKET_TYPE_CONNECT = 1,
     MQTT_PACKET_TYPE_CONNECT_ACK = 2,       /* Acknowledgment */
