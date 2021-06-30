@@ -188,10 +188,6 @@ int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, const uin
             mqttCtx->sleep_ms_cb(mqttCtx->app_ctx, 1);
         }
     } while (rc == MQTT_CODE_CONTINUE);
-    if (rc != MQTT_CODE_SUCCESS) {
-        mqttCtx->stat = WMQ_NET_DISCONNECT;
-        mqttCtx->return_code = rc;
-    }
     return rc;
 }
 
