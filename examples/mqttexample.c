@@ -159,7 +159,7 @@ void mqtt_context_init(MQTTCtx* mqttCtx, void* app_ctx)
     atomic_store_explicit(&mqttCtx->package_id_last, 0, memory_order_seq_cst);
 }
 
-int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, const uint8_t *content, int len)
+int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, word32 timeout_ms, const uint8_t *content, int len)
 {
     int rc = MQTT_CODE_SUCCESS;
     MqttPublish publish;
@@ -172,6 +172,7 @@ int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, const uin
     publish.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
     publish.buffer = (byte*)content;
     publish.total_len = (word16)len;
+    publish.timeout_ms = timeout_ms;
 
     for (;;) {
         if (mqttCtx->stat == WMQ_WAIT_MSG) {

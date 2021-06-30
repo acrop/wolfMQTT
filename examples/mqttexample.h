@@ -198,7 +198,7 @@ typedef struct MQTTCtxExample {
 } MQTTCtxExample;
 
 WOLFMQTT_LOCAL void mqtt_context_init(MQTTCtx* mqttCtx, void* app_ctx);
-WOLFMQTT_LOCAL int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, const uint8_t *content, int len);
+WOLFMQTT_LOCAL int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, word32 timeout_ms, const uint8_t *content, int len);
 WOLFMQTT_LOCAL int mqtt_receive_msg(MQTTCtx *mqttCtx, uint8_t *buffer, uint32_t buffer_len);
 
 void mqtt_show_usage(MQTTCtx* mqttCtx);

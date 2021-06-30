@@ -511,7 +511,7 @@ typedef struct _MqttMessage {
     byte        topic_type;
     byte        return_code;
 #endif
-
+    word32      timeout_ms;
     const char *topic_name;   /* Pointer is valid only when
                                  msg_new set in callback */
     word16      topic_name_len;
