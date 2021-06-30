@@ -1282,8 +1282,15 @@ wait_again:
     } /* switch (mms_stat->read) */
 
 #ifdef WOLFMQTT_NONBLOCK
-    if (rc == MQTT_CODE_CONTINUE)
-        return rc;
+    if (rc == MQTT_CODE_CONTINUE) {
+        if (mms_stat->read == MQTT_MSG_WAIT
+            && client->read.pos == 0
+            && client->packet.stat == MQTT_PK_BEGIN) {
+            rc= MQTT_CODE_SUCCESS;
+        } else {
+            return rc;
+        }
+    }
 #endif
 
     MqttClient_ResetReadState(client, mms_stat);
@@ -1301,8 +1308,12 @@ wait_again:
     }
 
     if (!waitMatchFound) {
+#ifdef WOLFMQTT_NONBLOCK
+        return MQTT_CODE_CONTINUE;
+#else
         /* if we get here, then the we are still waiting for a packet */
         goto wait_again;
+#endif
     }
 
     return rc;
