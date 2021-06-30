@@ -42,21 +42,36 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
     byte msg_new, byte msg_done)
 {
     MQTTCtx* mqttCtx = (MQTTCtx*)client->ctx;
+    if (msg->skip) {
+        return MQTT_CODE_SUCCESS;
+    }
+    if (msg->duplicate) {
+        msg->skip = 1;
+        return MQTT_CODE_SUCCESS;
+    }
 
     if (msg_new) {
+        word32 write_available;
         word16 topic_len = msg->topic_name_len;
         word32 payload_len = msg->total_len;
         // total_len = sigma of (word32 topic_len:word16, body_len:word32, topic, \0, body, \0)
         word32 total_len = sizeof(word32) + sizeof(topic_len) + topic_len + 1 + payload_len + 1;
+        msg->skip = 1;
         if (total_len > mqttCtx->on_message_rb.capacity) {
-            return -1;
+            return MQTT_CODE_SUCCESS;
         }
-        for (;;) {
-            word32 write_available = ringbuf_write_available(&mqttCtx->on_message_rb);
+        for (int i = 0; i < 100; ++i) {
+            write_available = ringbuf_write_available(&mqttCtx->on_message_rb);
             if (write_available >= total_len) {
+                msg->skip = 0;
                 break;
             }
             mqttCtx->sleep_ms_cb(mqttCtx->app_ctx, 1);
+        }
+        if (msg->skip) {
+            printf("Dropped %s write_available:%d total_len:%d\n",
+                msg->topic_name, write_available, total_len);
+            return MQTT_CODE_SUCCESS;
         }
         ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&total_len, sizeof(total_len));
         ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&topic_len, sizeof(topic_len));
