@@ -299,6 +299,10 @@ typedef struct _MqttMsgStatFull {
     unsigned int in_resp_list: 1;
     unsigned int padding: 5;
 
+#ifdef WOLFMQTT_NONBLOCK
+    word32 start_time_ms;
+#endif
+
 #ifdef WOLFMQTT_DEBUG_THREAD
     word16 packet_type;
     word32 packet_id;

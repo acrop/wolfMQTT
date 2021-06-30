@@ -778,6 +778,9 @@ static int MqttClient_SendObject(MqttClient* client, MqttSendObjectOption *optio
         PRINTF("lock write %d:%d done", obj->stat.packet_type, obj->stat.packet_id);
     #endif
         obj->stat.write_locked = 1;
+    #ifdef WOLFMQTT_NONBLOCK
+        obj->stat.start_time_ms = client->net->get_timer_ms();
+    #endif
         rc = MqttClient_SendObjectEncode(client, option);
         if (rc <= 0) {
             if (rc == 0) {
@@ -860,7 +863,7 @@ static int MqttClient_MsgStateUpdate(int rc,
 #ifdef WOLFMQTT_NONBLOCK
     if (client->net->get_timer_ms != NULL) {
         /* Track elapsed time with no activity and trigger timeout */
-        rc = MqttClient_CheckTimeout(rc, &client->read_time_ms,
+        rc = MqttClient_CheckTimeout(rc, &obj->stat.start_time_ms,
             send_option->timeout_ms, client->net->get_timer_ms());
         if (rc == MQTT_CODE_ERROR_TIMEOUT) {
         #ifdef WOLFMQTT_DEBUG_THREAD
@@ -911,8 +914,10 @@ static int MqttClient_SendObjectWaitType(MqttClient* client, MqttSendObjectOptio
     if (rc == MQTT_CODE_SUCCESS && obj->stat.on_wait_type) {
         /* Wait for response packet */
         if (obj == &client->msg) {
+            client->read_time_ms = obj->stat.start_time_ms;
             rc = MqttClient_WaitType(client, option->recv_obj,
                 option->ack_packet_type, option->packet_id, option->timeout_ms);
+            obj->stat.start_time_ms = client->read_time_ms;
         } else {
             rc = MqttClient_WaitAck(client, option->recv_obj,
                 option->ack_packet_type, option->packet_id, option->timeout_ms);
