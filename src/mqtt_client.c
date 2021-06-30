@@ -277,7 +277,10 @@ static int MqttClient_RespList_Find(MqttClient *client,
          tmpResp != NULL;
          tmpResp = tmpResp->next)
     {
-        if (packet_type == tmpResp->packet_type &&
+        if (packet_type == MQTT_PACKET_TYPE_CLEAR) {
+            tmpResp->packetDone = 1;
+            tmpResp->packet_ret = MQTT_CODE_ERROR_NETWORK;
+        } else if (packet_type == tmpResp->packet_type &&
            (packet_id == tmpResp->packet_id))
         {
         #ifdef WOLFMQTT_DEBUG_CLIENT
@@ -293,6 +296,15 @@ static int MqttClient_RespList_Find(MqttClient *client,
         }
     }
     return rc;
+}
+
+static void MqttClient_RespListClear(MqttClient *client)
+{
+    int rc = wm_SemLock(&client->lockClient);
+    if (rc == MQTT_CODE_SUCCESS) {
+        MqttClient_RespList_Find(client, MQTT_PACKET_TYPE_CLEAR, 0, NULL);
+        wm_SemUnlock(&client->lockClient);
+    }
 }
 
 static int MqttClient_RespListUpdate(MqttClient *client,
@@ -632,6 +644,7 @@ static int MqttClient_DecodePacket(MqttClient* client, byte* rx_buf,
         case MQTT_PACKET_TYPE_PING_REQ:
         case MQTT_PACKET_TYPE_ANY:
         case MQTT_PACKET_TYPE_RESERVED:
+        case MQTT_PACKET_TYPE_CLEAR:
         default:
             /* these type are only encoded by client */
             rc = MQTT_CODE_ERROR_PACKET_TYPE;
@@ -708,6 +721,7 @@ static int MqttClient_SendObjectEncode(MqttClient* client, MqttSendObjectOption 
     case MQTT_PACKET_TYPE_UNSUBSCRIBE_ACK:
     case MQTT_PACKET_TYPE_PING_RESP:
     case MQTT_PACKET_TYPE_ANY:
+    case MQTT_PACKET_TYPE_CLEAR:
     default:
         /* these types are only sent from broker and should not be sent
             * by client */
@@ -1103,6 +1117,7 @@ static int MqttClient_HandlePacket(MqttClient* client,
         case MQTT_PACKET_TYPE_PING_REQ:
         case MQTT_PACKET_TYPE_ANY:
         case MQTT_PACKET_TYPE_RESERVED:
+        case MQTT_PACKET_TYPE_CLEAR:
         default:
             /* these types are only sent from client and should not be sent
              * by broker */
@@ -2074,6 +2089,9 @@ int MqttClient_NetConnect(MqttClient *client, const char* host,
 
 int MqttClient_NetDisconnect(MqttClient *client)
 {
+#ifdef WOLFMQTT_MULTITHREAD
+    MqttClient_RespListClear(client);
+#endif
     return MqttSocket_Disconnect(client);
 }
 
