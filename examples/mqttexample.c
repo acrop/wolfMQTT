@@ -175,7 +175,7 @@ int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, word32 ti
     publish.timeout_ms = timeout_ms;
 
     for (;;) {
-        if (mqttCtx->stat == WMQ_WAIT_MSG) {
+        if (mqttCtx->stat == WMQ_WAIT_MSG || mqttCtx->stat == WMQ_PING) {
             break;
         }
         if (mqttCtx->sleep_ms_cb) {
@@ -185,6 +185,9 @@ int mqtt_publish_msg(MQTTCtx *mqttCtx, const char* topic, MqttQoS qos, word32 ti
 
     do {
         rc = MqttClient_Publish(&mqttCtx->client, &publish);
+        if (rc == MQTT_CODE_SUCCESS) {
+            return rc;
+        }
         if (mqttCtx->sleep_ms_cb) {
             mqttCtx->sleep_ms_cb(mqttCtx->app_ctx, 1);
         }

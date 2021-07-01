@@ -69,6 +69,7 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
             mqttCtx->sleep_ms_cb(mqttCtx->app_ctx, 1);
         }
         if (msg->skip) {
+            ((char*)msg->topic_name)[topic_len] = 0;
             printf("Dropped %s write_available:%d total_len:%d\n",
                 msg->topic_name, write_available, total_len);
             return MQTT_CODE_SUCCESS;
