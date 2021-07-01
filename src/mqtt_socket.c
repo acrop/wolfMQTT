@@ -320,7 +320,9 @@ int MqttSocket_Connect(MqttClient *client, const char* host, word16 port,
     int timeout_ms, int use_tls, MqttTlsCb cb)
 {
     int rc = MQTT_CODE_SUCCESS;
-
+#ifdef ENABLE_MQTT_TLS
+    int ssl_rc = WOLFSSL_SUCCESS;
+#endif
     /* Validate arguments */
     if (client == NULL || client->net == NULL ||
         client->net->connect == NULL) {
@@ -356,14 +358,14 @@ int MqttSocket_Connect(MqttClient *client, const char* host, word16 port,
         #endif
 
             /* Setup the WolfSSL library */
-            rc = wolfSSL_Init();
+            ssl_rc = wolfSSL_Init();
 
             /* Issue callback to allow setup of the wolfSSL_CTX and cert
                verification settings */
-            if ((rc == WOLFSSL_SUCCESS) && (cb != NULL)) {
-                rc = cb(client);
+            if ((ssl_rc == WOLFSSL_SUCCESS) && (cb != NULL)) {
+                ssl_rc = cb(client);
             }
-            if (rc != WOLFSSL_SUCCESS) {
+            if (ssl_rc != WOLFSSL_SUCCESS) {
                 rc = MQTT_CODE_ERROR_TLS_CONNECT;
                 goto exit;
             }
@@ -405,8 +407,8 @@ int MqttSocket_Connect(MqttClient *client, const char* host, word16 port,
             wolfSSL_SetCertCbCtx(client->tls.ssl, client->ctx);
         }
 
-        rc = wolfSSL_connect(client->tls.ssl);
-        if (rc != WOLFSSL_SUCCESS) {
+        ssl_rc = wolfSSL_connect(client->tls.ssl);
+        if (ssl_rc != WOLFSSL_SUCCESS) {
             rc = MQTT_CODE_ERROR_TLS_CONNECT;
             goto exit;
         }
@@ -423,7 +425,7 @@ exit:
     #endif
         int errnum = 0;
         if (client->tls.ssl) {
-            errnum = wolfSSL_get_error(client->tls.ssl, 0);
+            errnum = wolfSSL_get_error(client->tls.ssl, ssl_rc);
             if ((errnum == WOLFSSL_ERROR_WANT_READ) ||
                 (errnum == WOLFSSL_ERROR_WANT_WRITE)) {
                 return MQTT_CODE_CONTINUE;
@@ -434,8 +436,8 @@ exit:
         }
 
     #ifdef WOLFMQTT_DEBUG_SOCKET
-        PRINTF("MqttSocket_TlsConnect Error %d: Num %d, %s",
-            rc, errnum, errstr);
+        PRINTF("MqttSocket_TlsConnect Error %d,%d: Num %d, %s",
+            rc, ssl_rc, errnum, errstr);
     #endif /* WOLFMQTT_DEBUG_SOCKET */
 
         /* Make sure we cleanup on error */
