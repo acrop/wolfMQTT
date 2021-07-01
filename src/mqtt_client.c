@@ -1732,7 +1732,11 @@ int MqttClient_Publish_ex(MqttClient *client, MqttPublish *publish,
 #endif
     send_option.packet_id = publish->packet_id;
     send_option.packet_qos = publish->qos;
-    send_option.timeout_ms = client->cmd_timeout_ms;
+    if (publish->timeout_ms != 0) {
+        send_option.timeout_ms = publish->timeout_ms;
+    } else {
+        send_option.timeout_ms = client->cmd_timeout_ms;
+    }
     send_option.pub_cb = pubCb;
     if (publish->qos == MQTT_QOS_0) {
         send_option.ack_packet_type = MQTT_PACKET_TYPE_RESERVED;
