@@ -713,6 +713,36 @@ static int MqttClient_SendObjectEncode(MqttClient* client, MqttSendObjectOption 
     return rc;
 }
 
+#ifdef WOLFMQTT_MULTITHREAD
+static int MqttClient_WaitAck(MqttClient *client, MqttObject *obj,
+    byte wait_type, word16 wait_packet_id, int timeout_ms)
+{
+    int rc = MQTT_CODE_SUCCESS;
+    int waitMatchFound = 0;
+    for (;;) {
+        rc = MqttClient_RespListUpdate(client, wait_type, wait_packet_id, &waitMatchFound);
+        if (rc < 0) {
+            return rc;
+        }
+        if (waitMatchFound == 1) {
+            return MQTT_CODE_SUCCESS;
+        }
+#ifdef WOLFMQTT_NONBLOCK
+        return MQTT_CODE_CONTINUE;
+#endif
+
+        /* Check if timeout when no response received */
+        if (client->net->get_timer_ms) {
+            word32 time_diff = client->net->get_timer_ms() - obj->stat.start_time_ms;
+            if (time_diff > timeout_ms) {
+                return MQTT_CODE_ERROR_TIMEOUT;
+            }
+        }
+    }
+    return rc;
+}
+#endif /* WOLFMQTT_MULTITHREAD */
+
 static int MqttClient_Publish_WritePayload(MqttClient *client,
     MqttPublish *publish, MqttPublishCb pubCb);
 
@@ -794,7 +824,8 @@ static int MqttClient_SendObject(MqttClient* client, MqttSendObjectOption *optio
         client->write.len = rc;
         rc = MQTT_CODE_SUCCESS;
     #ifdef WOLFMQTT_MULTITHREAD
-        if (option->ack_packet_type != MQTT_PACKET_TYPE_RESERVED) {
+        if (option->ack_packet_type != MQTT_PACKET_TYPE_RESERVED
+            && obj != &client->msg) {
             rc = wm_SemLock(&client->lockClient);
             if (rc == 0) {
                 /* inform other threads of expected response */
@@ -927,9 +958,17 @@ static int MqttClient_SendObjectWaitType(MqttClient* client, MqttSendObjectOptio
     }
     if (rc == MQTT_CODE_SUCCESS && send_obj->stat.on_wait_type) {
         /* Wait for response packet */
-        rc = MqttClient_WaitType(
-            client, option->recv_obj,
-            option->ack_packet_type, option->packet_id, option->timeout_ms);
+        if (send_obj == &client->msg) {
+            rc = MqttClient_WaitType(client, option->recv_obj,
+                option->ack_packet_type, option->packet_id, option->timeout_ms);
+        } else {
+        #ifdef WOLFMQTT_MULTITHREAD
+            rc = MqttClient_WaitAck(client, send_obj,
+                option->ack_packet_type, option->packet_id, option->timeout_ms);
+        #else
+            rc = MQTT_CODE_ERROR_STAT;
+        #endif
+        }
     }
     return MqttClient_MsgStateUpdate(rc, client, option);
 }
@@ -1166,13 +1205,6 @@ wait_again:
         }
         case MQTT_MSG_WAIT:
         {
-        #ifdef WOLFMQTT_MULTITHREAD
-            rc = MqttClient_RespListUpdate(client, wait_type, wait_packet_id, &waitMatchFound);
-            if (rc < 0 || waitMatchFound == 1) {
-                break;
-            }
-        #endif /* WOLFMQTT_MULTITHREAD */
-
             mms_stat->read = MQTT_MSG_WAIT;
 
             /* Wait for packet */
@@ -1281,10 +1313,6 @@ wait_again:
                     pendResp = NULL;
                     wm_SemUnlock(&client->lockClient);
                 }
-            }
-            rc = MqttClient_RespListUpdate(client, wait_type, wait_packet_id, &waitMatchFound);
-            if (rc < 0 || waitMatchFound == 1) {
-                break;
             }
         #endif /* WOLFMQTT_MULTITHREAD */
             break;
