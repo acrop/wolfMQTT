@@ -605,6 +605,11 @@ int multithread_test(MQTTCtx *mqttCtx)
     }
     return rc;
 }
+#else /* WOLFMQTT_MULTITHREAD */
+static void mqtt_stop_set(void)
+{
+    mStopRead = 1;
+}
 #endif /* WOLFMQTT_MULTITHREAD */
 
 /* so overall tests can pull in test function */
