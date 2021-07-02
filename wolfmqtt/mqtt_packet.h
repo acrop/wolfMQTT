@@ -509,6 +509,7 @@ typedef struct _MqttMessage {
     MqttQoS     qos;
     byte        retain;
     byte        duplicate;
+    byte        skip;
 #ifdef WOLFMQTT_SN
     byte        topic_type;
     byte        return_code;
