@@ -359,14 +359,6 @@ int mqttclient_test(MQTTCtx *mqttCtx)
                     return rc;
                 }
 
-                if (rc == MQTT_CODE_ERROR_TIMEOUT) {
-                    /* Need to send keep-alive ping */
-                    rc = MQTT_CODE_CONTINUE;
-                    PRINTF("Keep-alive timeout, sending ping");
-                    mqttCtx->stat = WMQ_PING;
-                    return rc;
-                }
-
                 /* There was an error */
                 PRINTF("MQTT Message Wait: %s (%d)",
                     MqttClient_ReturnCodeToString(rc), rc);
@@ -391,14 +383,6 @@ int mqttclient_test(MQTTCtx *mqttCtx)
             return MQTT_CODE_CONTINUE;
         }
         FALL_THROUGH;
-
-        case WMQ_PING:
-        {
-            /* Go back to waiting for message */
-            mqttCtx->stat = WMQ_WAIT_MSG;
-            rc = MQTT_CODE_CONTINUE;
-            return rc;
-        }
 
         case WMQ_UNSUB:
         {

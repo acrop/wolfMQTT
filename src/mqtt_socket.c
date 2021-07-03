@@ -140,7 +140,19 @@ static int MqttSocket_WriteDo(MqttClient *client, const byte* buf, int buf_len,
     }
 
     if (rc > 0 && client->net->get_timer_ms) {
-        client->network_time_ms = client->net->get_timer_ms();
+        /* Only when the ping message is waiting for sending,
+           and the current buf is not encoded of ping package,
+           the write can update network_time_ms.
+           For example, the ping package is waiting for sending,
+           but currently are sending a very large publish package
+           (the size is hudge such as 16MB), so the ping have no
+           chance to be sent(so the ping response won't be received),
+           we need update network_time_ms to avoid network error.
+        */
+        if (client->ping_sending &&
+            client->ping.stat.write == MQTT_MSG_BEGIN) {
+            client->network_time_ms = client->net->get_timer_ms();
+        }
     }
 
 #ifdef WOLFMQTT_DEBUG_SOCKET
