@@ -152,6 +152,9 @@ typedef struct _MqttClient {
     MqttSk       read;
     MqttSk       write;
 
+    word16       publish_resp_count;
+    word16       publish_resp_capacity;
+    MqttPublishResp *publish_resp_list;
     MqttMsgCb    msg_cb;
     MqttObject   msg;   /* generic incoming message used by MqttClient_WaitType */
 #ifdef WOLFMQTT_SN

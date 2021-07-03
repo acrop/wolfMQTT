@@ -982,7 +982,6 @@ static int MqttClient_HandlePacket(MqttClient* client,
     int rc = MQTT_CODE_SUCCESS;
     MqttQoS packet_qos = MQTT_QOS_0;
     word16 packet_id = 0;
-    MqttPublishResp publish_resp;
 
     if (client == NULL || packet_obj == NULL) {
         return MQTT_CODE_ERROR_BAD_ARG;
@@ -1028,7 +1027,6 @@ static int MqttClient_HandlePacket(MqttClient* client,
                 MQTT_PACKET_TYPE_PUBLISH_ACK :
                 MQTT_PACKET_TYPE_PUBLISH_REC;
 
-            XMEMSET(&publish_resp, 0, sizeof(publish_resp));
             rc = MqttClient_SendPublishResp(client, &publish_resp,
                 resp_type, packet_id, packet_qos);
             break;
