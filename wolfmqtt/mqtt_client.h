@@ -144,8 +144,10 @@ typedef struct _MqttClient {
     MqttTls      tls;   /* WolfSSL context for TLS */
 #endif
 
+    byte         ping_sending;     /* MqttClient_WaitMessage_ex also sending ping request */
     word32       start_time_ms;    /* Used for keep-alive */
     word32       network_time_ms;  /* Used to monitor if data received or sent */
+    MqttPing     ping;
     MqttPkRead   packet;
     MqttSk       read;
     MqttSk       write;
@@ -344,11 +346,12 @@ WOLFMQTT_API int MqttClient_Unsubscribe(
                 Ping Response packet. This version takes a MqttPing structure
                 and can be used with non-blocking applications.
  *  \discussion This is a blocking function that will wait for MqttNet.read
+ *  \param      rc          The previous return code
  *  \param      client      Pointer to MqttClient structure
  *  \return     MQTT_CODE_SUCCESS or MQTT_CODE_ERROR_*
                 (see enum MqttPacketResponseCodes)
  */
-WOLFMQTT_API int MqttClient_Ping_ex(MqttClient *client, MqttPing* ping);
+WOLFMQTT_API int MqttClient_Ping_ex(int rc, MqttClient *client, MqttPing* ping);
 
 #ifdef WOLFMQTT_V5
 /*! \brief      Encodes and sends the MQTT Authentication Request packet and
