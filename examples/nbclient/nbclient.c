@@ -70,8 +70,10 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
         }
         if (msg->skip) {
             ((char*)msg->topic_name)[topic_len] = 0;
+        #ifdef DEBUG_WOLFMQTT
             PRINTF("Dropped %s write_available:%d total_len:%d\n",
                 msg->topic_name, write_available, total_len);
+        #endif
             return MQTT_CODE_SUCCESS;
         }
         ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&total_len, sizeof(total_len));
