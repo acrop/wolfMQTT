@@ -1855,12 +1855,8 @@ int MqttClient_Ping_ex(MqttClient *client, MqttPing* ping)
 
     XMEMSET(&send_option, 0, sizeof(send_option));
     send_option.send_packet_type = MQTT_PACKET_TYPE_PING_REQ;
-    send_option.ack_packet_type = MQTT_PACKET_TYPE_PING_RESP;
+    send_option.ack_packet_type = MQTT_PACKET_TYPE_RESERVED;
     send_option.send_obj = ping;
-    send_option.recv_obj = ping;
-#ifdef WOLFMQTT_MULTITHREAD
-    send_option.pend_resp = &ping->pendResp;
-#endif
     send_option.timeout_ms = client->cmd_timeout_ms;
 
     return MqttClient_SendObjectWaitType(client, &send_option);
@@ -1946,7 +1942,12 @@ int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
             MQTT_CODE_CONTINUE, &client->start_time_ms,
             timeout_ms * 0.5, client->net->get_timer_ms());
         if (check_rc == MQTT_CODE_ERROR_TIMEOUT) {
-            rc = MQTT_CODE_ERROR_TIMEOUT;
+        #ifdef DEBUG_WOLFMQTT
+            PRINTF("Keep-alive timeout at %d, sending ping",
+                client->net->get_timer_ms());
+        #endif
+            client->ping_sending = 1;
+            XMEMSET(&client->ping, 0, sizeof(&client->ping));
         }
 
         /* Track elapsed time that didn't send and receive any data,
@@ -1961,6 +1962,18 @@ int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
         }
     }
     while (rc == MQTT_CODE_SUCCESS) {
+        if (client->ping_sending) {
+            client->start_time_ms = 0;
+            /* Sending ping request */
+            rc = MqttClient_Ping_ex(client, &client->ping);
+            if (rc != MQTT_CODE_CONTINUE) {
+                if (rc == MQTT_CODE_SUCCESS) {
+                    client->ping_sending = 0;
+                } else {
+                    break;
+                }
+            }
+        }
         rc = MqttClient_WaitType(
             client, msg, MQTT_PACKET_TYPE_ANY,
             0, timeout_ms);

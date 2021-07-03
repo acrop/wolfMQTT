@@ -144,8 +144,10 @@ typedef struct _MqttClient {
     MqttTls      tls;   /* WolfSSL context for TLS */
 #endif
 
+    byte         ping_sending;     /* MqttClient_WaitMessage_ex also sending ping request */
     word32       start_time_ms;    /* Used for keep-alive */
     word32       network_time_ms;  /* Used to monitor if data received or sent */
+    MqttPing     ping;
     MqttPkRead   packet;
     MqttSk       read;
     MqttSk       write;
