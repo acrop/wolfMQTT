@@ -1866,12 +1866,8 @@ int MqttClient_Ping_ex(MqttClient *client, MqttPing* ping)
 
     XMEMSET(&send_option, 0, sizeof(send_option));
     send_option.send_packet_type = MQTT_PACKET_TYPE_PING_REQ;
-    send_option.ack_packet_type = MQTT_PACKET_TYPE_PING_RESP;
+    send_option.ack_packet_type = MQTT_PACKET_TYPE_RESERVED;
     send_option.send_obj = ping;
-    send_option.recv_obj = ping;
-#ifdef WOLFMQTT_MULTITHREAD
-    send_option.pend_resp = &ping->pendResp;
-#endif
     send_option.timeout_ms = client->cmd_timeout_ms;
 
     return MqttClient_SendObjectWaitType(client, &send_option);
@@ -1962,25 +1958,43 @@ int MqttClient_PropsFree(MqttProp **head)
 int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
         int timeout_ms)
 {
-    int rc = MqttClient_WaitType(client, msg, MQTT_PACKET_TYPE_ANY, 0,
+    int rc = MQTT_CODE_SUCCESS;
+    if (client->ping_started && !msg->stat.write_locked) {
+        rc = MqttClient_Ping_ex(client, &client->ping);
+        if (rc != MQTT_CODE_CONTINUE) {
+            if (rc == MQTT_CODE_SUCCESS) {
+                client->ping_started = 0;
+            } else {
+                return rc;
+            }
+        }
+    }
+    rc = MqttClient_WaitType(client, msg, MQTT_PACKET_TYPE_ANY, 0,
         timeout_ms);
 
     if (client->net->get_timer_ms != NULL) {
-        if (rc == MQTT_CODE_SUCCESS) {
-            /* Track elapsed time with no activity and trigger keep-alive timeout */
-            int check_alive_rc = MqttClient_CheckTimeout(MQTT_CODE_CONTINUE, &client->start_time_ms,
-                timeout_ms, client->net->get_timer_ms());
-            if (check_alive_rc == MQTT_CODE_ERROR_TIMEOUT) {
+        /* Track elapsed time and trigger keep-alive timeout */
+        int check_alive_rc = MqttClient_CheckTimeout(MQTT_CODE_CONTINUE, &client->start_time_ms,
+            timeout_ms * 0.5, client->net->get_timer_ms());
+        if (check_alive_rc == MQTT_CODE_ERROR_TIMEOUT) {
+            if (client->ping_started) {
+                /* The previous ping still not finished */
                 rc = MQTT_CODE_ERROR_TIMEOUT;
+            } else {
+            #ifdef DEBUG_WOLFMQTT
+                PRINTF("Keep-alive timeout at %d, sending ping",
+                    client->net->get_timer_ms());
+            #endif
+                client->ping_started = 1;
+                memset(&client->ping, 0, sizeof(&client->ping));
             }
         }
-#ifdef WOLFMQTT_NONBLOCK
-        else if (rc == MQTT_CODE_CONTINUE) {
-            /* Track elapsed time with no activity and trigger timeout */
-            rc = MqttClient_CheckTimeout(rc, &client->read_time_ms,
-                timeout_ms, client->net->get_timer_ms());
-        }
-#endif
+
+        /* Track elapsed time that didn't receive any data, as in normal
+         state, the server would respond MQTT_PACKET_TYPE_PING_RESP */
+        rc = MqttClient_CheckTimeout(
+            rc, &client->read_time_ms,
+            timeout_ms, client->net->get_timer_ms());
     }
     if (rc == MQTT_CODE_CONTINUE) {
         return rc;
