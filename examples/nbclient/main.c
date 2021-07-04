@@ -53,7 +53,7 @@ void mqtt_init_nbclient_ctx(MQTTCtx *mqttCtx, MQTTCtxExample *example)
 #endif
   snprintf(client_id_buffer, sizeof(client_id_buffer), "WolfMQTTClient_time:%llu", (unsigned long long)time(NULL));
   mqttCtx->client_id = client_id_buffer;
-  topics_list[0].qos = MQTT_QOS_0;
+  topics_list[0].qos = MQTT_QOS_1;
   topics_list[0].topic_filter = "wolfMQTT/example/testTopic";
   topics_list[0].return_code = MQTT_SUBSCRIBE_ACK_CODE_SUCCESS_MAX_QOS2;
 #ifdef WOLFMQTT_V5
