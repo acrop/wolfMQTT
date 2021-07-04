@@ -267,15 +267,20 @@ void mqttclient_nb_state_cleanup(MQTTCtx *mqttCtx)
 
 void mqttclient_connect_packet_init(MqttConnect *connect, MQTTCtx *mqttCtx)
 {
+    MqttClient *client = &mqttCtx->client;
     /* Reset client properties */
-    mqttCtx->client.start_time_ms = 0;
+    client->ping_started = 0;
+    client->start_time_ms = 0;
+    client->read_time_ms = 0;
 #ifdef WOLFMQTT_MULTITHREAD
     MqttClient_RespList_Reset(&mqttCtx->client);
 #endif
-    XMEMSET(&mqttCtx->client.packet, 0, sizeof(mqttCtx->client.packet));
-    XMEMSET(&mqttCtx->client.read, 0, sizeof(mqttCtx->client.read));
-    XMEMSET(&mqttCtx->client.write, 0, sizeof(mqttCtx->client.write));
-    XMEMSET(&mqttCtx->client.msg, 0, sizeof(mqttCtx->client.msg));
+    XMEMSET(&client->resp_queue, 0, sizeof(client->resp_queue));
+    XMEMSET(&client->ping, 0, sizeof(client->ping));
+    XMEMSET(&client->packet, 0, sizeof(client->packet));
+    XMEMSET(&client->read, 0, sizeof(client->read));
+    XMEMSET(&client->write, 0, sizeof(client->write));
+    XMEMSET(&client->msg, 0, sizeof(client->msg));
 
     /* Build connect packet */
     XMEMSET(connect, 0, sizeof(MqttConnect));
@@ -311,10 +316,10 @@ void mqttclient_connect_packet_init(MqttConnect *connect, MQTTCtx *mqttCtx)
     connect->password = mqttCtx->password;
 
 #ifdef WOLFMQTT_V5
-    mqttCtx->client.packet_sz_max = mqttCtx->max_packet_size;
-    mqttCtx->client.enable_eauth = mqttCtx->enable_eauth;
+    client->packet_sz_max = mqttCtx->max_packet_size;
+    client->enable_eauth = mqttCtx->enable_eauth;
 
-    if (mqttCtx->client.enable_eauth == 1)
+    if (client->enable_eauth == 1)
     {
         /* Enhanced authentication */
         /* Add property: Authentication Method */

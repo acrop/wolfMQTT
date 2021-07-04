@@ -992,7 +992,8 @@ static int MqttClient_HandlePacket(MqttClient* client,
     int rc = MQTT_CODE_SUCCESS;
     MqttQoS packet_qos = MQTT_QOS_0;
     word16 packet_id = 0;
-    MqttPublishResp publish_resp;
+    MqttPublishRespQueue *resp_queue = &client->resp_queue;
+    MqttPublishRespBody *publish_resp_body = resp_queue->data + resp_queue->tail;
 
     if (client == NULL || packet_obj == NULL) {
         return MQTT_CODE_ERROR_BAD_ARG;
@@ -1038,9 +1039,11 @@ static int MqttClient_HandlePacket(MqttClient* client,
                 MQTT_PACKET_TYPE_PUBLISH_ACK :
                 MQTT_PACKET_TYPE_PUBLISH_REC;
 
-            XMEMSET(&publish_resp, 0, sizeof(publish_resp));
-            rc = MqttClient_SendPublishResp(client, &publish_resp,
-                resp_type, packet_id, packet_qos);
+            /* append to the publish resp queue for latter write */
+            publish_resp_body->packet_qos =  packet_qos;
+            publish_resp_body->resp_type = resp_type;
+            publish_resp_body->packet_id = packet_id;
+            resp_queue->tail = (resp_queue->tail + 1) % MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX;
             break;
         }
         case MQTT_PACKET_TYPE_PUBLISH_ACK:
@@ -1062,10 +1065,11 @@ static int MqttClient_HandlePacket(MqttClient* client,
             }
             packet_type = (MqttPacketType)((int)packet_type+1); /* next ack */
 
-            XMEMSET(&publish_resp, 0, sizeof(publish_resp));
-            rc = MqttClient_SendPublishResp(client, &publish_resp,
-                packet_type, packet_id, packet_qos);
-            break;
+            /* append to the publish resp queue for latter write */
+            publish_resp_body->packet_qos =  packet_qos;
+            publish_resp_body->resp_type = packet_type;
+            publish_resp_body->packet_id = packet_id;
+            resp_queue->tail = (resp_queue->tail + 1) % MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX;
         }
         case MQTT_PACKET_TYPE_SUBSCRIBE_ACK:
         {
