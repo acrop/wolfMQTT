@@ -116,7 +116,7 @@ static int mqtt_property_cb(MqttClient *client, MqttProp *head, void *ctx)
                 if (mqttCtx->client_id_buf != NULL) {
                     /* Store assigned client ID from CONNACK*/
                     /* really want strlcpy() semantics, but that's non-portable. */
-                    memset(mqttCtx->client_id_buf, 0, mqttCtx->client_id_buf_size);
+                    XMEMSET(mqttCtx->client_id_buf, 0, mqttCtx->client_id_buf_size);
                     XSTRNCPY((char*)mqttCtx->client_id_buf,
                             prop->data_str.str,
                             mqttCtx->client_id_buf_size -1 );
@@ -492,7 +492,7 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
                     topic->qos, topic->return_code);
             }
 
-            memset(&client->msg, 0, sizeof(client->msg));
+            XMEMSET(&client->msg, 0, sizeof(client->msg));
             FALL_THROUGH;
         }
 
@@ -510,7 +510,7 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
                     return rc;
                 }
 
-                memset(&client->msg, 0, sizeof(client->msg));
+                XMEMSET(&client->msg, 0, sizeof(client->msg));
 
                 /* check if stopped */
                 if (mqttCtx->stopped) {
@@ -557,7 +557,7 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
             }
             mqttCtx->return_code = rc;
 
-            memset(&client->msg.disconnect, 0, sizeof(client->msg.disconnect));
+            XMEMSET(&client->msg.disconnect, 0, sizeof(client->msg.disconnect));
             FALL_THROUGH;
         }
 

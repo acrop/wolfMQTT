@@ -1730,7 +1730,7 @@ int MqttDecode_Auth(byte *rx_buf, int rx_buf_len, MqttAuth *auth)
 }
 
 int MqttProps_Init(void) {
-    memset(&clientPropStack, 0, sizeof(clientPropStack));
+    XMEMSET(&clientPropStack, 0, sizeof(clientPropStack));
 #ifdef WOLFMQTT_MULTITHREAD
     return wm_SemInit(&clientPropStack_lock);
 #else

@@ -1995,7 +1995,7 @@ int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
                     client->net->get_timer_ms());
             #endif
                 client->ping_started = 1;
-                memset(&client->ping, 0, sizeof(&client->ping));
+                XMEMSET(&client->ping, 0, sizeof(&client->ping));
             }
         }
 
