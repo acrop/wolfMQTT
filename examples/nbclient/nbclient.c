@@ -60,12 +60,15 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
         if (total_len > mqttCtx->on_message_rb.capacity) {
             return MQTT_CODE_SUCCESS;
         }
-        for (int i = 0; i < 100; ++i) {
+        for (;;) {
             write_available = ringbuf_write_available(&mqttCtx->on_message_rb);
             if (write_available >= total_len) {
                 msg->skip = 0;
                 break;
             }
+        #ifdef WOLFMQTT_NONBLOCK
+            return MQTT_CODE_CONTINUE;
+        #endif
             mqttCtx->sleep_ms_cb(mqttCtx->app_ctx, 1);
         }
         if (msg->skip) {
