@@ -107,6 +107,18 @@ typedef struct _MqttSk {
     int len;
 } MqttSk;
 
+typedef struct _MqttPublishRespBody {
+    MqttQoS packet_qos;
+    MqttPacketType resp_type;
+    word16 packet_id;
+} MqttPublishRespBody;
+
+typedef struct _MqttPublishRespQueue {
+    int head;
+    int tail;
+    MqttPublishRespBody data[MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX];
+} MqttPublishRespQueue;
+
 #ifdef WOLFMQTT_DISCONNECT_CB
     typedef int (*MqttDisconnectCb)(struct _MqttClient* client, int error_code, void* ctx);
 #endif
@@ -144,10 +156,12 @@ typedef struct _MqttClient {
     MqttTls      tls;   /* WolfSSL context for TLS */
 #endif
 
-    MqttPing     ping;
     byte         ping_started;  /* Wait message also need send ping */
     word32       start_time_ms; /* Used for keep-alive */
     word32       read_time_ms;  /* Used to monitor if data received */
+
+    MqttPublishRespQueue resp_queue;
+    MqttPing     ping;
     MqttPkRead   packet;
     MqttSk       read;
     MqttSk       write;
