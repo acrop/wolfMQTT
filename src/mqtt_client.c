@@ -1020,6 +1020,8 @@ static int MqttClient_HandlePacket(MqttClient* client,
                 if (rc <= 0) {
                     return rc;
                 }
+                /* set state to reading payload */
+                publish->stat.read = MQTT_MSG_READ_PAYLOAD;
             }
 
             rc = MqttClient_Publish_ReadPayload(client, publish, timeout_ms);
@@ -1603,9 +1605,6 @@ static int MqttClient_Publish_ReadPayload(MqttClient* client,
             /* add last length to position and reset len */
             publish->buffer_pos += publish->buffer_len;
             publish->buffer_len = 0;
-
-            /* set state to reading payload */
-            publish->stat.read = MQTT_MSG_READ_PAYLOAD;
 
             msg_len = (publish->total_len - publish->buffer_pos);
             if (msg_len > client->rx_buf_len) {
