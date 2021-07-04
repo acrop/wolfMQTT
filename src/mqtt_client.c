@@ -151,6 +151,12 @@ static int MqttClient_Publish_ReadPayload(MqttClient* client,
         WaitForSingleObject(*s, INFINITE);
         return 0;
     }
+    int wm_SemTryLock(wm_Sem* s) {
+        if (WaitForSingleObject(*s, 0) == WAIT_OBJECT_0) {
+            return 0;
+        }
+        return MQTT_CODE_CONTINUE;
+    }
     int wm_SemUnlock(wm_Sem *s) {
         ReleaseSemaphore(*s, 1, NULL);
         return 0;
@@ -789,8 +795,16 @@ static int MqttClient_SendObject(MqttClient* client, MqttSendObjectOption *optio
     #endif
     #ifdef WOLFMQTT_MULTITHREAD
         /* Lock send socket mutex */
+    #ifdef WOLFMQTT_NONBLOCK
+        rc = wm_SemTryLock(&client->lockSend);
+    #else
         rc = wm_SemLock(&client->lockSend);
+    #endif
         if (rc != 0) {
+            /* When acquire the write lock failed, do not count time */
+            if (client->net->get_timer_ms != NULL) {
+                obj->stat.start_time_ms = client->net->get_timer_ms();
+            }
             return rc;
         }
     #endif
