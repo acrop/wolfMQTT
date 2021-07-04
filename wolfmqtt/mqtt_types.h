@@ -109,6 +109,7 @@
     WOLFMQTT_API int wm_SemInit(wm_Sem* s);
     WOLFMQTT_API int wm_SemFree(wm_Sem* s);
     WOLFMQTT_API int wm_SemLock(wm_Sem* s);
+    WOLFMQTT_API int wm_SemTryLock(wm_Sem* s);
     WOLFMQTT_API int wm_SemUnlock(wm_Sem* s);
 #endif
 
