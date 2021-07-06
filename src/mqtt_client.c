@@ -793,6 +793,11 @@ static int MqttClient_SendObject(MqttClient* client, MqttSendObjectOption *optio
     {
     case MQTT_MSG_BEGIN: {
         obj->stat.start_time_ms = 0;
+        /* check the network is connected */
+        if ((client->flags & MQTT_CLIENT_FLAG_IS_CONNECTED) == 0) {
+            rc = MQTT_CODE_ERROR_NETWORK;
+            break;
+        }
     #ifdef WOLFMQTT_DEBUG_THREAD
         PRINTF("lock write %d:%d", option->send_packet_type, option->packet_id);
     #endif
@@ -1183,6 +1188,12 @@ wait_again:
         case MQTT_MSG_BEGIN:
         {
             mms_stat->start_time_ms = 0;
+            /* check the network is connected */
+            if ((client->flags & MQTT_CLIENT_FLAG_IS_CONNECTED) == 0) {
+                rc = MQTT_CODE_ERROR_NETWORK;
+                break;
+            }
+
         #ifdef WOLFMQTT_DEBUG_THREAD
             PRINTF("lock read %d:%d", wait_type, wait_packet_id);
         #endif
@@ -2082,8 +2093,20 @@ int MqttClient_NetConnect(MqttClient *client, const char* host,
 
 int MqttClient_NetDisconnect(MqttClient *client)
 {
+    int rc = MQTT_CODE_SUCCESS;
     MqttClient_RespListClear(client);
-    return MqttSocket_Disconnect(client);
+    client->flags &= ~MQTT_CLIENT_FLAG_IS_CONNECTED;
+#ifdef WOLFMQTT_MULTITHREAD
+    rc = wm_SemLock(&client->lockSend);
+    if (rc < 0) {
+        return rc;
+    }
+#endif
+    rc = MqttSocket_Disconnect(client);
+#ifdef WOLFMQTT_MULTITHREAD
+    wm_SemUnlock(&client->lockSend);
+#endif
+    return rc;
 }
 
 int MqttClient_GetProtocolVersion(MqttClient *client)
