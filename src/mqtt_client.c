@@ -894,20 +894,21 @@ static int MqttClient_SendObject(MqttClient* client, MqttSendObjectOption *optio
 static int MqttClient_MsgStateUpdate(int rc,
     MqttClient* client, MqttSendObjectOption *send_option)
 {
-    MqttObject *obj = send_option->send_obj;
+    MqttObject *send_obj = send_option->send_obj;
+    MqttObject *recv_obj = send_option->recv_obj;
 #ifdef WOLFMQTT_NONBLOCK
     if (client->net->get_timer_ms != NULL) {
         /* Track elapsed time with no activity and trigger timeout */
-        rc = MqttClient_CheckTimeout(rc, &obj->stat.start_time_ms,
+        rc = MqttClient_CheckTimeout(rc, &send_obj->stat.start_time_ms,
             send_option->timeout_ms, client->net->get_timer_ms());
         if (rc == MQTT_CODE_ERROR_TIMEOUT) {
         #ifdef WOLFMQTT_DEBUG_THREAD
             PRINTF("Timeout timer %d ms stat on_wait_type:%d, read:%d write:%d type:%d packet_id:%d"
                 " read_locked:%d write_locked:%d",
                 send_option->timeout_ms,
-                obj->stat.on_wait_type, obj->stat.read, obj->stat.write,
+                send_obj->stat.on_wait_type, send_obj->stat.read, send_obj->stat.write,
                 send_option->send_packet_type, send_option->packet_id,
-                obj->stat.read_locked, obj->stat.write_locked);
+                send_obj->stat.read_locked, send_obj->stat.write_locked);
         #endif
         }
     }
@@ -934,9 +935,11 @@ static int MqttClient_MsgStateUpdate(int rc,
 #endif
 
     /* Reset state */
-    MqttClient_ResetWriteState(client, &obj->stat);
-    MqttClient_ResetReadState(client, &obj->stat);
-    obj->stat.on_wait_type = 0;
+    MqttClient_ResetWriteState(client, &send_obj->stat);
+    send_obj->stat.on_wait_type = 0;
+    if (recv_obj != NULL) {
+        MqttClient_ResetReadState(client, &recv_obj->stat);
+    }
     return rc;
 }
 
@@ -1552,7 +1555,7 @@ int MqttClient_Connect(MqttClient *client, MqttConnect *mc_connect)
     }
     if (need_wait_type) {
         /* Wait for connect ack packet */
-        rc = MqttClient_WaitType(client, &mc_connect->ack,
+        rc = MqttClient_WaitType(client, send_option.recv_obj,
             MQTT_PACKET_TYPE_CONNECT_ACK, 0, send_option.timeout_ms);
     }
     return MqttClient_MsgStateUpdate(rc, client, &send_option);
@@ -1962,6 +1965,7 @@ int MqttClient_PropsFree(MqttProp **head)
 
 #endif /* WOLFMQTT_V5 */
 
+/* Do no return in this funciton, all need MqttClient_ResetReadState */
 int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
         int timeout_ms)
 {
@@ -1995,7 +1999,7 @@ int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
         }
     }
 
-    if (rc == MQTT_CODE_SUCCESS) {
+    while (rc == MQTT_CODE_SUCCESS) {
         MqttPublishRespBody *resp_body_head = client->resp_queue.data + client->resp_queue.head;
         if (client->publish_resp.stat.write == MQTT_MSG_BEGIN &&
             client->ping_started) {
@@ -2005,7 +2009,7 @@ int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
                 if (rc == MQTT_CODE_SUCCESS) {
                     client->ping_started = 0;
                 } else {
-                    return rc;
+                    break;
                 }
             }
         }
@@ -2026,15 +2030,17 @@ int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
                     XMEMSET(resp_body_head, 0, sizeof(resp_body_head[0]));
                     client->resp_queue.head = (client->resp_queue.head + 1) % MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX;
                 } else {
-                    return rc;
+                    break;
                 }
             }
             if (resp_body_tail->resp_type != MQTT_PACKET_TYPE_RESERVED) {
-                return MQTT_CODE_CONTINUE;
+                rc = MQTT_CODE_CONTINUE;
+                break;
             }
         }
         rc = MqttClient_WaitType(client, msg, MQTT_PACKET_TYPE_ANY, 0,
             timeout_ms);
+        break;
     }
 
     if (rc == MQTT_CODE_CONTINUE) {
