@@ -2058,8 +2058,20 @@ int MqttClient_NetConnect(MqttClient *client, const char* host,
 
 int MqttClient_NetDisconnect(MqttClient *client)
 {
+    int rc = MQTT_CODE_SUCCESS;
     MqttClient_RespListClear(client);
-    return MqttSocket_Disconnect(client);
+    client->flags &= ~MQTT_CLIENT_FLAG_IS_CONNECTED;
+#ifdef WOLFMQTT_MULTITHREAD
+    rc = wm_SemLock(&client->lockSend);
+    if (rc < 0) {
+        return rc;
+    }
+#endif
+    rc = MqttSocket_Disconnect(client);
+#ifdef WOLFMQTT_MULTITHREAD
+    wm_SemUnlock(&client->lockSend);
+#endif
+    return rc;
 }
 
 int MqttClient_GetProtocolVersion(MqttClient *client)
