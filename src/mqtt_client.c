@@ -1986,20 +1986,6 @@ int MqttClient_Ping_ex(int rc, MqttClient *client, MqttPing* ping)
     return rc;
 }
 
-int MqttClient_Ping(MqttClient *client)
-{
-    MqttPing ping;
-    XMEMSET(&ping, 0, sizeof(ping));
-    for (;;) {
-        int rc = MqttClient_Ping_ex(client, &ping);
-    #ifdef WOLFMQTT_NONBLOCK
-        if (rc == MQTT_CODE_CONTINUE)
-            continue;
-    #endif
-        return rc;
-    }
-}
-
 int MqttClient_Disconnect(MqttClient *client)
 {
     MqttDisconnect disconnect;

@@ -359,15 +359,6 @@ WOLFMQTT_API int MqttClient_Unsubscribe(
     MqttClient *client,
     MqttUnsubscribe *unsubscribe);
 
-/*! \brief      Encodes and sends the MQTT Ping Request packet and waits for the
-                Ping Response packet
- *  \discussion This is a blocking function that will wait for MqttNet.read
- *  \param      client      Pointer to MqttClient structure
- *  \return     MQTT_CODE_SUCCESS or MQTT_CODE_ERROR_*
-                (see enum MqttPacketResponseCodes)
- */
-WOLFMQTT_API int MqttClient_Ping(
-    MqttClient *client);
 
 /*! \brief      Encodes and sends the MQTT Ping Request packet and waits for the
                 Ping Response packet. This version takes a MqttPing structure

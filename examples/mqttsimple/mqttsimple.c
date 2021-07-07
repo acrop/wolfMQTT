@@ -428,15 +428,7 @@ int mqttsimple_test(void)
     while (1) {
         rc = MqttClient_WaitMessage_ex(&mClient, &mqttObj, MQTT_CMD_TIMEOUT_MS);
 
-        if (rc == MQTT_CODE_ERROR_TIMEOUT) {
-            /* send keep-alive ping */
-            rc = MqttClient_Ping_ex(&mClient, &mqttObj.ping);
-            if (rc != MQTT_CODE_SUCCESS) {
-                break;
-            }
-            PRINTF("MQTT Keep-Alive Ping");
-        }
-        else if (rc != MQTT_CODE_SUCCESS) {
+        if (rc != MQTT_CODE_SUCCESS) {
             break;
         }
     }

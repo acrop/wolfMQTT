@@ -100,7 +100,6 @@ typedef enum _MQTTCtxState {
     WMQ_SUB,
     WMQ_PUB,
     WMQ_WAIT_MSG,
-    WMQ_PING,
     WMQ_UNSUB,
     WMQ_DISCONNECT,
     WMQ_NET_DISCONNECT,
@@ -127,7 +126,6 @@ typedef struct _MQTTCtx {
     MqttTopic topics[1];
     MqttPublish publish;
     MqttDisconnect disconnect;
-    MqttPing ping;
 #ifdef WOLFMQTT_SN
     SN_Publish publishSN;
 #endif

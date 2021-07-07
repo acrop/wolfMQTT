@@ -494,20 +494,6 @@ int azureiothub_test(MQTTCtx *mqttCtx)
                     }
                 }
             #endif
-                else if (rc == MQTT_CODE_ERROR_TIMEOUT) {
-                    /* Keep Alive */
-                    PRINTF("Keep-alive timeout, sending ping");
-
-                    rc = MqttClient_Ping_ex(&mqttCtx->client, &mqttCtx->ping);
-                    if (rc == MQTT_CODE_CONTINUE) {
-                        return rc;
-                    }
-                    else if (rc != MQTT_CODE_SUCCESS) {
-                        PRINTF("MQTT Ping Keep Alive Error: %s (%d)",
-                            MqttClient_ReturnCodeToString(rc), rc);
-                        break;
-                    }
-                }
                 else if (rc != MQTT_CODE_SUCCESS) {
                     /* There was an error */
                     PRINTF("MQTT Message Wait: %s (%d)",
@@ -559,7 +545,6 @@ int azureiothub_test(MQTTCtx *mqttCtx)
         }
 
         case WMQ_UNSUB: /* not used */
-        case WMQ_PING:
         default:
             rc = MQTT_CODE_ERROR_STAT;
             goto exit;
