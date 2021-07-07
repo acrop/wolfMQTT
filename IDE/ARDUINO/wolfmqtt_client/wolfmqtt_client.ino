@@ -318,23 +318,13 @@ void loop() {
       while (mStopRead == 0) {
         /* Try and read packet */
         rc = MqttClient_WaitMessage(&client, DEFAULT_CMD_TIMEOUT_MS);
-        if (rc != MQTT_CODE_SUCCESS && rc != MQTT_CODE_ERROR_TIMEOUT) {
+        if (rc != MQTT_CODE_SUCCESS) {
           /* There was an error */
           Serial.print("MQTT Message Wait: ");
           Serial.print(MqttClient_ReturnCodeToString(rc));
           Serial.print(" ");
           Serial.println(rc);
           break;
-        }
-
-        /* Keep Alive */
-        rc = MqttClient_Ping(&client);
-        if (rc != MQTT_CODE_SUCCESS) {
-            Serial.print("MQTT Ping: ");
-            Serial.print(MqttClient_ReturnCodeToString(rc));
-            Serial.print(" ");
-            Serial.println(rc);
-            break;
         }
       }
 

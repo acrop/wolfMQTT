@@ -392,16 +392,6 @@ int mqttclient_test(MQTTCtx *mqttCtx)
 
         case WMQ_PING:
         {
-            rc = MqttClient_Ping_ex(&mqttCtx->client, &mqttCtx->ping);
-            if (rc == MQTT_CODE_CONTINUE) {
-                return rc;
-            }
-            else if (rc != MQTT_CODE_SUCCESS) {
-                PRINTF("MQTT Ping Keep Alive Error: %s (%d)",
-                    MqttClient_ReturnCodeToString(rc), rc);
-                break;
-            }
-
             /* Go back to waiting for message */
             mqttCtx->stat = WMQ_WAIT_MSG;
             rc = MQTT_CODE_CONTINUE;
