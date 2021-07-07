@@ -499,37 +499,6 @@ static void *publish_task(void *param)
     THREAD_EXIT(0);
 }
 
-#ifdef USE_WINDOWS_API
-static DWORD WINAPI ping_task( LPVOID param ) 
-#else
-static void *ping_task(void *param)
-#endif
-{
-    int rc;
-    MQTTCtx *mqttCtx = (MQTTCtx*)param;
-    MqttPing ping;
-
-    XMEMSET(&ping, 0, sizeof(ping));
-
-    do {
-        wm_SemLock(&pingSignal);
-        if (mqtt_stop_get())
-            break;
-
-        /* Keep Alive Ping */
-        PRINTF("Sending ping keep-alive");
-
-        rc = MqttClient_Ping_ex(&mqttCtx->client, &ping);
-        if (rc != MQTT_CODE_SUCCESS) {
-            PRINTF("MQTT Ping Keep Alive Error: %s (%d)",
-                MqttClient_ReturnCodeToString(rc), rc);
-            break;
-        }
-    } while (!mqtt_stop_get());
-
-    THREAD_EXIT(0);
-}
-
 static int unsubscribe_do(MQTTCtx *mqttCtx)
 {
     int rc;
@@ -574,11 +543,6 @@ int multithread_test(MQTTCtx *mqttCtx)
         }
         /* Create the thread that waits for messages */
         if (THREAD_CREATE(&threadList[threadCount++], waitMessage_task, mqttCtx)) {
-            PRINTF("THREAD_CREATE failed: %d", errno);
-            return -1;
-        }
-        /* Ping */
-        if (THREAD_CREATE(&threadList[threadCount++], ping_task, mqttCtx)) {
             PRINTF("THREAD_CREATE failed: %d", errno);
             return -1;
         }
