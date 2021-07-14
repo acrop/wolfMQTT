@@ -47,6 +47,10 @@
 #include "user_settings.h"
 #endif
 
+#if !defined(MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX)
+#define MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX 8
+#endif
+
 #ifdef ENABLE_MQTT_TLS
     #if !defined(WOLFSSL_USER_SETTINGS) && !defined(USE_WINDOWS_API)
         #include <wolfssl/options.h>
