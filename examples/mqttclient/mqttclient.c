@@ -37,12 +37,6 @@ static int mStopRead = 0;
 /* Maximum size for network read/write callbacks. There is also a v5 define that
    describes the max MQTT control packet size, WOLFMQTT_MAX_PKT_SZ. */
 #define MAX_BUFFER_SIZE 1024
-
-#ifdef WOLFMQTT_PROPERTY_CB
-#define MAX_CLIENT_ID_LEN 64
-char gClientId[MAX_CLIENT_ID_LEN] = {0};
-#endif
-
 #ifdef WOLFMQTT_DISCONNECT_CB
 /* callback indicates a network error occurred */
 static int mqtt_disconnect_cb(MqttClient* client, int error_code, void* ctx)
@@ -126,14 +120,15 @@ static int mqtt_property_cb(MqttClient *client, MqttProp *head, void *ctx)
         switch (prop->type)
         {
             case MQTT_PROP_ASSIGNED_CLIENT_ID:
-                /* Store client ID in global */
-                mqttCtx->client_id = &gClientId[0];
-
+                if (mqttCtx->client_id_buf == NULL) {
+                    break;
+                }
                 /* Store assigned client ID from CONNACK*/
-                XSTRNCPY((char*)mqttCtx->client_id,
+                XSTRNCPY((char*)mqttCtx->client_id_buf,
                         prop->data_str.str,
-                        MAX_CLIENT_ID_LEN-1);
-                ((char*)mqttCtx->client_id)[MAX_CLIENT_ID_LEN-1] = 0; /* really want strlcpy() semantics, but that's non-portable. */
+                        mqttCtx->client_id_buf_size -1 );
+                /* Store client ID in global */
+                mqttCtx->client_id = (const char*)mqttCtx->client_id_buf;
                 break;
 
             case MQTT_PROP_SUBSCRIPTION_ID_AVAIL:

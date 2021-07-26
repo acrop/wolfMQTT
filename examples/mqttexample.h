@@ -141,6 +141,11 @@ typedef struct _MQTTCtx {
     const char* message;
     const char* pub_file;
     const char* client_id;
+
+    /* buffer for receiving client id from server */
+    byte* client_id_buf;
+    int client_id_buf_size;
+
     byte *tx_buf, *rx_buf;
     int return_code;
     int use_tls;
