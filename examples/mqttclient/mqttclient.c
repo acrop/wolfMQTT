@@ -29,9 +29,6 @@
 #include "mqttclient.h"
 #include "examples/mqttnet.h"
 
-/* Locals */
-static int mStopRead = 0;
-
 /* Configuration */
 
 /* Maximum size for network read/write callbacks. There is also a v5 define that
@@ -210,10 +207,10 @@ static int mqtt_property_cb(MqttClient *client, MqttProp *head, void *ctx)
 }
 #endif
 
-int mqttclient_test(MQTTCtx *mqttCtx)
+int mqttclient_initialize(MQTTCtx *mqttCtx)
 {
-    MQTTCtxExample *mqttExample = mqttCtx->app_ctx;
-    int rc = MQTT_CODE_SUCCESS, i;
+    int rc = MQTT_CODE_SUCCESS;
+    mqttclient_context_initialize(mqttCtx);
 
     PRINTF("MQTT Client: QoS %d, Use TLS %d", mqttCtx->qos,
             mqttCtx->use_tls);
@@ -223,24 +220,19 @@ int mqttclient_test(MQTTCtx *mqttCtx)
     PRINTF("MQTT Net Init: %s (%d)",
         MqttClient_ReturnCodeToString(rc), rc);
     if (rc != MQTT_CODE_SUCCESS) {
-        goto exit;
+        return rc;
     }
-
-    /* setup tx/rx buffers */
-    mqttCtx->tx_buf = (byte*)WOLFMQTT_MALLOC(MAX_BUFFER_SIZE);
-    mqttCtx->rx_buf = (byte*)WOLFMQTT_MALLOC(MAX_BUFFER_SIZE);
-
     /* Initialize MqttClient structure */
     rc = MqttClient_Init(&mqttCtx->client, &mqttCtx->net,
         mqtt_message_cb,
-        mqttCtx->tx_buf, MAX_BUFFER_SIZE,
-        mqttCtx->rx_buf, MAX_BUFFER_SIZE,
+        mqttCtx->tx_buf, mqttCtx->tx_buf_size,
+        mqttCtx->rx_buf, mqttCtx->rx_buf_size,
         mqttCtx->cmd_timeout_ms);
 
     PRINTF("MQTT Init: %s (%d)",
         MqttClient_ReturnCodeToString(rc), rc);
     if (rc != MQTT_CODE_SUCCESS) {
-        goto exit;
+        return rc;
     }
     /* The client.ctx will be stored in the cert callback ctx during
        MqttSocket_Connect for use by mqtt_tls_verify_cb */
@@ -251,28 +243,36 @@ int mqttclient_test(MQTTCtx *mqttCtx)
     rc = MqttClient_SetDisconnectCallback(&mqttCtx->client,
         mqtt_disconnect_cb, NULL);
     if (rc != MQTT_CODE_SUCCESS) {
-        goto exit;
+        return rc;
     }
 #endif
 #ifdef WOLFMQTT_PROPERTY_CB
     rc = MqttClient_SetPropertyCallback(&mqttCtx->client,
             mqtt_property_cb, NULL);
     if (rc != MQTT_CODE_SUCCESS) {
-        goto exit;
+        return rc;
     }
 #endif
+    return rc;
+}
 
-    /* Connect to broker */
-    rc = MqttClient_NetConnect(&mqttCtx->client, mqttCtx->host,
-           mqttCtx->port,
-        mqttCtx->connect_timeout_ms, mqttCtx->use_tls, mqttCtx->tls_cb);
-
-    PRINTF("MQTT Socket Connect: %s (%d)",
-        MqttClient_ReturnCodeToString(rc), rc);
-    if (rc != MQTT_CODE_SUCCESS) {
-        goto exit;
+void mqttclient_context_initialize(MQTTCtx *mqttCtx)
+{
+#ifdef WOLFMQTT_NONBLOCK
+    mqttCtx->useNonBlockMode = 1;
+#endif
+    /* setup tx/rx buffers */
+    if (mqttCtx->tx_buf == NULL) {
+        mqttCtx->tx_rx_allocated = 1;
+        mqttCtx->tx_buf = (byte*)WOLFMQTT_MALLOC(MAX_BUFFER_SIZE);
+        mqttCtx->tx_buf_size = MAX_BUFFER_SIZE;
+        mqttCtx->rx_buf = (byte*)WOLFMQTT_MALLOC(MAX_BUFFER_SIZE);
+        mqttCtx->rx_buf_size = MAX_BUFFER_SIZE;
     }
+}
 
+void mqttclient_connect_initialize(MQTTCtx *mqttCtx)
+{
     /* Build connect packet */
     XMEMSET(&mqttCtx->connect, 0, sizeof(MqttConnect));
     mqttCtx->connect.keep_alive_sec = mqttCtx->keep_alive_sec;
@@ -342,15 +342,15 @@ int mqttclient_test(MQTTCtx *mqttCtx)
         prop->data_short = mqttCtx->topic_alias_max;
     }
 #endif
+}
 
-    /* Send Connect and wait for Connect Ack */
-    rc = MqttClient_Connect(&mqttCtx->client, &mqttCtx->connect);
-
+void mqttclient_connect_finalize(int rc, MQTTCtx *mqttCtx)
+{
     PRINTF("MQTT Connect: Proto (%s), %s (%d)",
         MqttClient_GetProtocolVersionString(&mqttCtx->client),
         MqttClient_ReturnCodeToString(rc), rc);
     if (rc != MQTT_CODE_SUCCESS) {
-        goto disconn;
+        return;
     }
 
 #ifdef WOLFMQTT_V5
@@ -373,22 +373,25 @@ int mqttclient_test(MQTTCtx *mqttCtx)
         PRINTF("MQTT Connect Ack: Assigned Client ID: %s",
                 mqttCtx->client_id);
 #endif
+}
 
+void mqttclient_subscribe_initialize(MQTTCtx *mqttCtx)
+{
     /* Build list of topics */
     XMEMSET(&mqttCtx->subscribe, 0, sizeof(MqttSubscribe));
 
-    i = 0;
-    mqttCtx->topics[i].topic_filter = mqttExample->topic_name;
-    mqttCtx->topics[i].qos = mqttCtx->qos;
-
 #ifdef WOLFMQTT_V5
     if (mqttCtx->subId_not_avail != 1) {
+        word32 i;
         /* Subscription Identifier */
-        MqttProp* prop;
-        mqttCtx->topics[i].sub_id = i + 1; /* Sub ID starts at 1 */
-        prop = MqttClient_PropsAdd(&mqttCtx->subscribe.props);
-        prop->type = MQTT_PROP_SUBSCRIPTION_ID;
-        prop->data_int = mqttCtx->topics[i].sub_id;
+        for (i = 0; i < mqttCtx->topic_count; ++i) {
+            if (mqttCtx->topics[i].sub_id > 0) {
+                MqttProp* prop;
+                prop = MqttClient_PropsAdd(&mqttCtx->subscribe.props);
+                prop->type = MQTT_PROP_SUBSCRIPTION_ID;
+                prop->data_int = mqttCtx->topics[i].sub_id;
+            }
+        }
     }
 #endif
 
@@ -396,9 +399,11 @@ int mqttclient_test(MQTTCtx *mqttCtx)
     mqttCtx->subscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
     mqttCtx->subscribe.topic_count = mqttCtx->topic_count;
     mqttCtx->subscribe.topics = mqttCtx->topics;
+}
 
-    rc = MqttClient_Subscribe(&mqttCtx->client, &mqttCtx->subscribe);
-
+void mqttclient_subscribe_finalize(int rc, MQTTCtx *mqttCtx)
+{
+    int i;
 #ifdef WOLFMQTT_V5
     /* Release the allocated properties */
     MqttClient_PropsFree(&mqttCtx->subscribe.props);
@@ -407,7 +412,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
     PRINTF("MQTT Subscribe: %s (%d)",
         MqttClient_ReturnCodeToString(rc), rc);
     if (rc != MQTT_CODE_SUCCESS) {
-        goto disconn;
+        return;
     }
 
     /* show subscribe results */
@@ -416,6 +421,76 @@ int mqttclient_test(MQTTCtx *mqttCtx)
         PRINTF("  Topic %s, Qos %u, Return Code %u",
             topic->topic_filter,
             topic->qos, topic->return_code);
+    }
+}
+
+void mqttclient_unsubscribe_initialize(MQTTCtx *mqttCtx)
+{
+    /* Unsubscribe Topics */
+    XMEMSET(&mqttCtx->unsubscribe, 0, sizeof(MqttUnsubscribe));
+    mqttCtx->unsubscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
+    mqttCtx->unsubscribe.topic_count = mqttCtx->topic_count;
+    mqttCtx->unsubscribe.topics = mqttCtx->topics;
+}
+
+void mqttclient_finalize(MQTTCtx *mqttCtx)
+{
+    if (mqttCtx->tx_rx_allocated) {
+        /* Free resources */
+        if (mqttCtx->tx_buf) WOLFMQTT_FREE(mqttCtx->tx_buf);
+        if (mqttCtx->rx_buf) WOLFMQTT_FREE(mqttCtx->rx_buf);
+    }
+
+    /* Cleanup network */
+    MqttClientNet_DeInit(&mqttCtx->net);
+
+    MqttClient_DeInit(&mqttCtx->client);
+}
+
+#ifndef MQTTCLIENT_DISABLE_TEST
+
+/* Locals */
+static int mStopRead = 0;
+
+int mqttclient_test(MQTTCtx *mqttCtx)
+{
+    MQTTCtxExample *mqttExample = mqttCtx->app_ctx;
+    int rc = MQTT_CODE_SUCCESS, i;
+
+    /* MQTT client initialize */
+    rc = mqttclient_initialize(mqttCtx);
+    if (rc != MQTT_CODE_SUCCESS) {
+        goto exit;
+    }
+
+    /* Connect to broker */
+    rc = MqttClient_NetConnect(&mqttCtx->client, mqttCtx->host,
+           mqttCtx->port,
+        mqttCtx->connect_timeout_ms, mqttCtx->use_tls, mqttCtx->tls_cb);
+
+    PRINTF("MQTT Socket Connect: %s (%d)",
+        MqttClient_ReturnCodeToString(rc), rc);
+    if (rc != MQTT_CODE_SUCCESS) {
+        goto exit;
+    }
+
+    mqttclient_connect_initialize(mqttCtx);
+    /* Send Connect and wait for Connect Ack */
+    rc = MqttClient_Connect(&mqttCtx->client, &mqttCtx->connect);
+    mqttclient_connect_finalize(rc, mqttCtx);
+    if (rc != MQTT_CODE_SUCCESS) {
+        goto disconn;
+    }
+
+    i = 0;
+    mqttCtx->topics[i].topic_filter = mqttExample->topic_name;
+    mqttCtx->topics[i].qos = mqttCtx->qos;
+    mqttCtx->topics[i].sub_id = i + 1; /* Sub ID starts at 1 */
+    mqttclient_subscribe_initialize(mqttCtx);
+    rc = MqttClient_Subscribe(&mqttCtx->client, &mqttCtx->subscribe);
+    mqttclient_subscribe_finalize(rc, mqttCtx);
+    if (rc != MQTT_CODE_SUCCESS) {
+        goto disconn;
     }
 
     /* Publish Topic */
@@ -548,11 +623,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
         goto disconn;
     }
 
-    /* Unsubscribe Topics */
-    XMEMSET(&mqttCtx->unsubscribe, 0, sizeof(MqttUnsubscribe));
-    mqttCtx->unsubscribe.packet_id = mqtt_get_packetid(&(mqttCtx->package_id_last));
-    mqttCtx->unsubscribe.topic_count = mqttCtx->topic_count;
-    mqttCtx->unsubscribe.topics = mqttCtx->topics;
+    mqttclient_unsubscribe_initialize(mqttCtx);
 
     /* Unsubscribe Topics */
     rc = MqttClient_Unsubscribe(&mqttCtx->client,
@@ -583,14 +654,7 @@ disconn:
 
 exit:
 
-    /* Free resources */
-    if (mqttCtx->tx_buf) WOLFMQTT_FREE(mqttCtx->tx_buf);
-    if (mqttCtx->rx_buf) WOLFMQTT_FREE(mqttCtx->rx_buf);
-
-    /* Cleanup network */
-    MqttClientNet_DeInit(&mqttCtx->net);
-
-    MqttClient_DeInit(&mqttCtx->client);
+    mqttclient_finalize(mqttCtx);
 
     return rc;
 }
@@ -662,3 +726,5 @@ int main(int argc, char** argv)
 }
 
 #endif /* NO_MAIN_DRIVER */
+
+#endif /* MQTTCLIENT_DISABLE_TEST */
