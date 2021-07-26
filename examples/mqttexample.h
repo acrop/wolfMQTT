@@ -153,7 +153,11 @@ typedef struct _MQTTCtx {
     byte* client_id_buf;
     int client_id_buf_size;
 
-    byte *tx_buf, *rx_buf;
+    byte tx_rx_allocated;
+    byte *tx_buf;
+    int tx_buf_size;
+    byte *rx_buf;
+    int rx_buf_size;
     volatile word16 package_id_last;
     int return_code;
     int use_tls;

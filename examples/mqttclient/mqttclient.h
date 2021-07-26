@@ -26,7 +26,17 @@
 
 
 /* Exposed functions */
+int mqttclient_initialize(MQTTCtx *mqttCtx);
+void mqttclient_context_initialize(MQTTCtx *mqttCtx);
+void mqttclient_connect_initialize(MQTTCtx *mqttCtx);
+void mqttclient_connect_finalize(int rc, MQTTCtx *mqttCtx);
+void mqttclient_subscribe_initialize(MQTTCtx *mqttCtx);
+void mqttclient_subscribe_finalize(int rc, MQTTCtx *mqttCtx);
+void mqttclient_unsubscribe_initialize(MQTTCtx *mqttCtx);
+void mqttclient_finalize(MQTTCtx *mqttCtx);
+#ifndef MQTTCLIENT_DISABLE_TEST
 int mqttclient_test(MQTTCtx *mqttCtx);
+#endif
 
 
 #endif /* WOLFMQTT_MQTTCLIENT_H */
