@@ -36,7 +36,6 @@
 /* Configuration */
 
 /* Maximum size for network read/write callbacks. */
-#define MAX_BUFFER_SIZE 1024
 #define TEST_MESSAGE    "test00"
 /* Number of publish tasks. Each will send a unique message to the broker. */
 #define NUM_PUB_TASKS   10
@@ -236,6 +235,8 @@ static int multithread_test_init(MQTTCtx *mqttCtx)
 
     PRINTF("Use \"Ctrl+c\" to exit.");
 
+    mqttclient_context_initialize(mqttCtx);
+
     /* Initialize Network */
     rc = SN_ClientNet_Init(&mqttCtx->net, mqttCtx);
     PRINTF("MQTT-SN Net Init: %s (%d)",
@@ -244,15 +245,11 @@ static int multithread_test_init(MQTTCtx *mqttCtx)
         client_exit(mqttCtx);
     }
 
-    /* setup tx/rx buffers */
-    mqttCtx->tx_buf = (byte*)WOLFMQTT_MALLOC(MAX_BUFFER_SIZE);
-    mqttCtx->rx_buf = (byte*)WOLFMQTT_MALLOC(MAX_BUFFER_SIZE);
-
     /* Initialize MqttClient structure */
     rc = MqttClient_Init(&mqttCtx->client, &mqttCtx->net,
         sn_message_cb,
-        mqttCtx->tx_buf, MAX_BUFFER_SIZE,
-        mqttCtx->rx_buf, MAX_BUFFER_SIZE,
+        mqttCtx->tx_buf, mqttCtx->rx_buf_size,
+        mqttCtx->rx_buf, mqttCtx->rx_buf_size,
         mqttCtx->cmd_timeout_ms);
 
     PRINTF("MQTT Init: %s (%d)",
@@ -387,8 +384,8 @@ static void *waitMessage_task(void *param)
         /* check return code */
     #ifdef WOLFMQTT_ENABLE_STDIN_CAP
         else if (rc == MQTT_CODE_STDIN_WAKE) {
-            XMEMSET(mqttCtx->rx_buf, 0, MAX_BUFFER_SIZE);
-            if (XFGETS((char*)mqttCtx->rx_buf, MAX_BUFFER_SIZE - 1,
+            XMEMSET(mqttCtx->rx_buf, 0, mqttCtx->rx_buf_size);
+            if (XFGETS((char*)mqttCtx->rx_buf, mqttCtx->rx_buf_size - 1,
                     stdin) != NULL)
             {
                 rc = (int)XSTRLEN((char*)mqttCtx->rx_buf);

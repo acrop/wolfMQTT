@@ -115,15 +115,16 @@ typedef struct _MQTTCtx {
     MqttNet net;
     MqttTlsCb tls_cb;
 
-    /* temp mqtt containers */
-    MqttConnect connect;
     MqttMessage lwt_msg;
-    MqttSubscribe subscribe;
-    MqttUnsubscribe unsubscribe;
     MqttTopic *topics;
     word32 topic_count;
     MqttPublish publish;
-    MqttDisconnect disconnect;
+
+    /* temp mqtt containers */
+    MqttConnect *connect;
+    MqttSubscribe *subscribe;
+    MqttUnsubscribe *unsubscribe;
+    MqttDisconnect *disconnect;
 #ifdef WOLFMQTT_SN
     SN_Publish publishSN;
 #endif

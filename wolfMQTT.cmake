@@ -28,5 +28,11 @@ function(wolfmqtt_steup_app_target target_name)
     ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/examples/mqttexample.c
     ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/examples/mqttnet.c
   )
+  if (NOT "${target_name}" STREQUAL "mqttclient")
+    target_sources(${target_name} PRIVATE
+      ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/examples/mqttclient/mqttclient.c
+    )
+    target_compile_definitions(${target_name} PRIVATE MQTTCLIENT_DISABLE_TEST)
+  endif()
   target_link_libraries(${target_name} wolfmqtt)
 endfunction(wolfmqtt_steup_app_target)
