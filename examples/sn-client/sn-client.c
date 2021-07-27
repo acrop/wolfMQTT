@@ -36,7 +36,6 @@ static int mStopRead = 0;
 
 /* Configuration */
 /* Maximum size for network read/write callbacks. */
-#define MAX_BUFFER_SIZE 1024
 #define TEST_MESSAGE    "test"
 #define SHORT_TOPIC_NAME "s1"
 
@@ -104,6 +103,7 @@ int sn_test(MQTTCtx *mqttCtx)
     word16 topicID;
 
     PRINTF("MQTT-SN Client: QoS %d", mqttCtx->qos);
+    mqttclient_context_initialize(mqttCtx);
 
     /* Initialize Network */
     rc = SN_ClientNet_Init(&mqttCtx->net, mqttCtx);
@@ -113,15 +113,11 @@ int sn_test(MQTTCtx *mqttCtx)
         goto exit;
     }
 
-    /* setup tx/rx buffers */
-    mqttCtx->tx_buf = (byte*)WOLFMQTT_MALLOC(MAX_BUFFER_SIZE);
-    mqttCtx->rx_buf = (byte*)WOLFMQTT_MALLOC(MAX_BUFFER_SIZE);
-
     /* Initialize MqttClient structure */
     rc = MqttClient_Init(&mqttCtx->client, &mqttCtx->net,
         sn_message_cb,
-        mqttCtx->tx_buf, MAX_BUFFER_SIZE,
-        mqttCtx->rx_buf, MAX_BUFFER_SIZE,
+        mqttCtx->tx_buf, mqttCtx->rx_buf_size,
+        mqttCtx->rx_buf, mqttCtx->rx_buf_size,
         mqttCtx->cmd_timeout_ms);
 
     PRINTF("MQTT-SN Init: %s (%d)",
@@ -475,8 +471,8 @@ int sn_test(MQTTCtx *mqttCtx)
         /* check return code */
     #ifdef WOLFMQTT_ENABLE_STDIN_CAP
         else if (rc == MQTT_CODE_STDIN_WAKE) {
-            XMEMSET(mqttCtx->rx_buf, 0, MAX_BUFFER_SIZE);
-            if (XFGETS((char*)mqttCtx->rx_buf, MAX_BUFFER_SIZE - 1,
+            XMEMSET(mqttCtx->rx_buf, 0, mqttCtx->rx_buf_size);
+            if (XFGETS((char*)mqttCtx->rx_buf, mqttCtx->rx_buf_size - 1,
                     stdin) != NULL)
             {
                 rc = (int)XSTRLEN((char*)mqttCtx->rx_buf);
