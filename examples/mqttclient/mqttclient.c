@@ -143,6 +143,7 @@ static int mqtt_property_cb(MqttClient *client, MqttProp *head, void *ctx)
                 break;
 
             case MQTT_PROP_MAX_PACKET_SZ:
+            #ifdef WOLFMQTT_V5
                 if ((prop->data_int > 0) &&
                     (prop->data_int <= MQTT_PACKET_SZ_MAX))
                 {
@@ -150,10 +151,11 @@ static int mqtt_property_cb(MqttClient *client, MqttProp *head, void *ctx)
                         (client->packet_sz_max < prop->data_int) ?
                          client->packet_sz_max : prop->data_int;
                 }
-                else {
+                else if (prop->data_int != 0) {
                     /* Protocol error */
                     rc = MQTT_CODE_ERROR_PROPERTY;
                 }
+            #endif
                 break;
 
             case MQTT_PROP_SERVER_KEEP_ALIVE:
