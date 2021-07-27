@@ -44,7 +44,7 @@
 
 /* Non-blocking support */
 #undef WOLFMQTT_NONBLOCK
-#if 1
+#if 0
   #define WOLFMQTT_NONBLOCK
 #endif
 
