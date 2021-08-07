@@ -57,7 +57,8 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
             if (rc == MQTT_CODE_CONTINUE) {
                 return rc;
             }
-            if (rc != MQTT_CODE_ERROR_ROUTE_TO_HOST) {
+            if (rc != MQTT_CODE_ERROR_ROUTE_TO_HOST &&
+                rc != MQTT_CODE_ERROR_DNS_RESOLVE) {
                 PRINTF("MQTT Socket Connect: %s (%d)",
                     MqttClient_ReturnCodeToString(rc), rc);
             }
@@ -176,8 +177,10 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
             if (rc == MQTT_CODE_CONTINUE) {
                 return rc;
             }
+#ifdef WOLFMQTT_DEBUG_SOCKET
             PRINTF("MQTT Disconnect: %s (%d)",
                 MqttClient_ReturnCodeToString(rc), rc);
+#endif
             if (rc != MQTT_CODE_SUCCESS) {
                 goto disconn;
             }
@@ -192,8 +195,10 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
             if (rc == MQTT_CODE_CONTINUE) {
                 return rc;
             }
+#ifdef WOLFMQTT_DEBUG_SOCKET
             PRINTF("MQTT Socket Disconnect: %s (%d)",
                 MqttClient_ReturnCodeToString(rc), rc);
+#endif
         }
         FALL_THROUGH;
 
