@@ -29,6 +29,7 @@
 
 #include "nbclient.h"
 #include "examples/mqttnet.h"
+#include <errno.h>
 
 enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
 {
@@ -59,8 +60,8 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
             }
             if (rc != MQTT_CODE_ERROR_ROUTE_TO_HOST &&
                 rc != MQTT_CODE_ERROR_DNS_RESOLVE) {
-                PRINTF("MQTT Socket Connect: %s (%d)",
-                    MqttClient_ReturnCodeToString(rc), rc);
+                PRINTF("MQTT Socket Connect: %s (%d)(%d)",
+                    MqttClient_ReturnCodeToString(rc), rc, errno);
             }
             if (rc != MQTT_CODE_SUCCESS) {
                 goto disconn;
@@ -133,8 +134,8 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
                 }
 
                 /* There was an error */
-                PRINTF("MQTT Message Wait: %s (%d)",
-                    MqttClient_ReturnCodeToString(rc), rc);
+                PRINTF("MQTT Message Wait: %s (%d)(%d)",
+                    MqttClient_ReturnCodeToString(rc), rc, errno);
                 break;
             } while (1);
 
@@ -158,8 +159,8 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
             if (rc == MQTT_CODE_CONTINUE) {
                 return rc;
             }
-            PRINTF("MQTT Unsubscribe: %s (%d)",
-                MqttClient_ReturnCodeToString(rc), rc);
+            PRINTF("MQTT Unsubscribe: %s (%d)(%d)",
+                MqttClient_ReturnCodeToString(rc), rc, errno);
             if (rc != MQTT_CODE_SUCCESS) {
                 goto disconn;
             }
@@ -178,8 +179,8 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
                 return rc;
             }
 #ifdef WOLFMQTT_DEBUG_SOCKET
-            PRINTF("MQTT Disconnect: %s (%d)",
-                MqttClient_ReturnCodeToString(rc), rc);
+            PRINTF("MQTT Disconnect: %s (%d)(%d)",
+                MqttClient_ReturnCodeToString(rc), rc, errno);
 #endif
             if (rc != MQTT_CODE_SUCCESS) {
                 goto disconn;
@@ -196,8 +197,8 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
                 return rc;
             }
 #ifdef WOLFMQTT_DEBUG_SOCKET
-            PRINTF("MQTT Socket Disconnect: %s (%d)",
-                MqttClient_ReturnCodeToString(rc), rc);
+            PRINTF("MQTT Socket Disconnect: %s (%d)(%d)",
+                MqttClient_ReturnCodeToString(rc), rc,errno);
 #endif
         }
         FALL_THROUGH;

@@ -24,6 +24,7 @@
     #include <config.h>
 #endif
 
+#include <errno.h>
 #include "wolfmqtt/mqtt_client.h"
 
 #include "mqttclient.h"
@@ -40,8 +41,8 @@ static int mqtt_disconnect_cb(MqttClient* client, int error_code, void* ctx)
 {
     (void)client;
     (void)ctx;
-    PRINTF("Network Error Callback: %s (error %d)",
-        MqttClient_ReturnCodeToString(error_code), error_code);
+    PRINTF("Network Error Callback: %s (error %d errno %d)",
+        MqttClient_ReturnCodeToString(error_code), error_code, errno);
     return 0;
 }
 #endif
