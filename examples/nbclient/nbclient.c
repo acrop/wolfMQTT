@@ -41,6 +41,7 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
         {
             mqttCtx->connect_start_time_ms = 0;
             ringbuf_reset(&mqttCtx->on_message_rb);
+            ringbuf_reset(&mqttCtx->send_message_rb);
         }
         FALL_THROUGH;
 
