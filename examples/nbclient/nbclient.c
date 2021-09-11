@@ -30,6 +30,9 @@
 #include "nbclient.h"
 #include "examples/mqttnet.h"
 #include <errno.h>
+#include "main.h"
+
+uint8_t publish_payload[WOLFMQTT_MAX_PACKET_SIZE];
 
 enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
 {
@@ -106,9 +109,31 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
         }
         FALL_THROUGH;
 
+        case WMQ_PUB:
+        {
+            char *payload;
+            char *topic;
+            uint32_t total_len;
+            uint16_t topic_len;
+            uint32_t payload_len;
+            mqttCtx->stat = WMQ_WAIT_MSG;
+            int recv_result = mqtt_receive_msg(&mqttCtx->send_message_rb, publish_payload, sizeof(publish_payload));
+            if (recv_result > 0) {
+                // 4个字节totalLen 2个字节topicLen  topic \0 payload \0
+                total_len = *(uint32_t *)publish_payload;
+                topic_len = *(uint16_t *)(publish_payload + sizeof(total_len));
+                topic = publish_payload + sizeof(total_len) + sizeof(topic_len);
+                payload = (char *)(publish_payload + sizeof(total_len) + sizeof(topic_len) + topic_len + 1);
+                payload_len = total_len - sizeof(total_len) - sizeof(topic_len) - topic_len - 1 - 1;
+                PRINTF("read send topic = %s\n", topic);
+                mqtt_publish_msg(mqttCtx, topic, 0, -1, payload, payload_len);
+            }
+        }
+        FALL_THROUGH;
+
         case WMQ_WAIT_MSG:
         {
-            mqttCtx->stat = WMQ_WAIT_MSG;
+            mqttCtx->stat = WMQ_PUB;
 
             do {
                 /* Try and read packet */
