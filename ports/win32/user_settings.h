@@ -123,4 +123,9 @@
   #define HAVE_SOCKET
 #endif
 
+#undef MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX
+#if 0
+  #define MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX 8
+#endif
+
 #endif /* _WOLFMQTT_USER_SETTINGS_ */

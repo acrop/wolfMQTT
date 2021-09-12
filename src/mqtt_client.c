@@ -1020,11 +1020,10 @@ static int MqttClient_SendObjectWaitType(MqttClient* client, MqttSendObjectOptio
     return MqttClient_MsgStateUpdate(rc, client, option);
 }
 
-static int MqttClient_SendPublishResp(MqttClient* client,
+static int MqttClient_SendPublishResp(int rc, MqttClient* client,
     MqttPublishResp *publish_resp, MqttPacketType resp_type,
     word16 packet_id, MqttQoS packet_qos)
 {
-    int rc = MQTT_CODE_SUCCESS;
     MqttSendObjectOption send_option;
     XMEMSET(&send_option, 0, sizeof(send_option));
     send_option.send_packet_type = resp_type;
@@ -1033,14 +1032,10 @@ static int MqttClient_SendPublishResp(MqttClient* client,
     send_option.packet_qos = packet_qos;
     send_option.send_obj = publish_resp;
     send_option.timeout_ms = client->cmd_timeout_ms;
-    /* Make sure the send lock released when sending publish ack. */
-    for (;;) {
+    if (rc == MQTT_CODE_SUCCESS || rc == MQTT_CODE_CONTINUE) {
         rc = MqttClient_SendObjectWaitType(client, &send_option);
-    #ifdef WOLFMQTT_NONBLOCK
-        if (rc == MQTT_CODE_CONTINUE)
-            continue;
-    #endif
-        break;
+    } else {
+        rc = MqttClient_MsgStateUpdate(rc, client, &send_option);
     }
     return rc;
 }
@@ -1051,7 +1046,8 @@ static int MqttClient_HandlePacket(MqttClient* client,
     int rc = MQTT_CODE_SUCCESS;
     MqttQoS packet_qos = MQTT_QOS_0;
     word16 packet_id = 0;
-    MqttPublishResp publish_resp;
+    MqttPublishRespQueue *resp_queue = &client->resp_queue;
+    MqttPublishRespBody *publish_resp_body = resp_queue->data + resp_queue->tail;
 
     if (client == NULL || packet_obj == NULL) {
         return MQTT_CODE_ERROR_BAD_ARG;
@@ -1103,9 +1099,11 @@ static int MqttClient_HandlePacket(MqttClient* client,
                 MQTT_PACKET_TYPE_PUBLISH_ACK :
                 MQTT_PACKET_TYPE_PUBLISH_REC;
 
-            XMEMSET(&publish_resp, 0, sizeof(publish_resp));
-            rc = MqttClient_SendPublishResp(client, &publish_resp,
-                resp_type, packet_id, packet_qos);
+            /* append to the publish resp queue for latter write */
+            publish_resp_body->packet_qos =  packet_qos;
+            publish_resp_body->resp_type = resp_type;
+            publish_resp_body->packet_id = packet_id;
+            resp_queue->tail = (resp_queue->tail + 1) % MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX;
             break;
         }
         case MQTT_PACKET_TYPE_PUBLISH_ACK:
@@ -1127,10 +1125,11 @@ static int MqttClient_HandlePacket(MqttClient* client,
             }
             packet_type = (MqttPacketType)((int)packet_type+1); /* next ack */
 
-            XMEMSET(&publish_resp, 0, sizeof(publish_resp));
-            rc = MqttClient_SendPublishResp(client, &publish_resp,
-                packet_type, packet_id, packet_qos);
-            break;
+            /* append to the publish resp queue for latter write */
+            publish_resp_body->packet_qos =  packet_qos;
+            publish_resp_body->resp_type = packet_type;
+            publish_resp_body->packet_id = packet_id;
+            resp_queue->tail = (resp_queue->tail + 1) % MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX;
         }
         case MQTT_PACKET_TYPE_SUBSCRIBE_ACK:
         {
@@ -1964,7 +1963,7 @@ int MqttClient_Unsubscribe(MqttClient *client, MqttUnsubscribe *unsubscribe)
     return MqttClient_SendObjectWaitType(client, &send_option);
 }
 
-int MqttClient_Ping_ex(MqttClient *client, MqttPing* ping)
+int MqttClient_Ping_ex(int rc, MqttClient *client, MqttPing* ping)
 {
     MqttSendObjectOption send_option;
 
@@ -1975,15 +1974,16 @@ int MqttClient_Ping_ex(MqttClient *client, MqttPing* ping)
 
     XMEMSET(&send_option, 0, sizeof(send_option));
     send_option.send_packet_type = MQTT_PACKET_TYPE_PING_REQ;
-    send_option.ack_packet_type = MQTT_PACKET_TYPE_PING_RESP;
+    send_option.ack_packet_type = MQTT_PACKET_TYPE_RESERVED;
     send_option.send_obj = ping;
-    send_option.recv_obj = ping;
-#ifdef WOLFMQTT_MULTITHREAD
-    send_option.pend_resp = &ping->pendResp;
-#endif
     send_option.timeout_ms = client->cmd_timeout_ms;
 
-    return MqttClient_SendObjectWaitType(client, &send_option);
+    if (rc == MQTT_CODE_SUCCESS || rc == MQTT_CODE_CONTINUE) {
+        rc = MqttClient_SendObjectWaitType(client, &send_option);
+    } else {
+        rc = MqttClient_MsgStateUpdate(rc, client, &send_option);
+    }
+    return rc;
 }
 
 int MqttClient_Ping(MqttClient *client)
@@ -2073,14 +2073,37 @@ int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
         int timeout_ms)
 {
     int rc = MQTT_CODE_SUCCESS;
-
+    int recv_rc = MQTT_CODE_SUCCESS;
+    int send_rc = MQTT_CODE_SUCCESS;
+    MqttPublishRespBody *resp_body_tail = client->resp_queue.data + client->resp_queue.tail;
+    /* We can sending and receiving at the same time.
+     * If there is space to storage more publish response,
+     * receiving more package.
+     */
+    if (resp_body_tail->resp_type == MQTT_PACKET_TYPE_RESERVED) {
+        /* MqttClient_WaitType should called before send ping and send
+         * publish response, so the recv_rc can be used by them to clear
+         * the write state(including unlock the write lock)
+         */
+        recv_rc = MqttClient_WaitType(
+            client, msg, MQTT_PACKET_TYPE_ANY,
+            0, timeout_ms);
+    }
     if (client->net->get_timer_ms != NULL) {
         /* Track elapsed time and trigger keep-alive timeout */
-        int check_rc = MqttClient_CheckTimeout(
-            MQTT_CODE_CONTINUE, &client->start_time_ms,
-            timeout_ms * 0.5, client->net->get_timer_ms());
-        if (check_rc == MQTT_CODE_ERROR_TIMEOUT) {
-            rc = MQTT_CODE_ERROR_TIMEOUT;
+        int check_rc = MQTT_CODE_SUCCESS;
+        if (client->ping_sending == 0) {
+            check_rc = MqttClient_CheckTimeout(
+                MQTT_CODE_CONTINUE, &client->start_time_ms,
+                timeout_ms * 0.5, client->net->get_timer_ms());
+            if (check_rc == MQTT_CODE_ERROR_TIMEOUT) {
+            #ifdef DEBUG_WOLFMQTT
+                PRINTF("Keep-alive timeout at %u, sending ping",
+                    client->net->get_timer_ms());
+            #endif
+                client->ping_sending = 1;
+                XMEMSET(&client->ping, 0, sizeof(client->ping));
+            }
         }
 
         /* Track elapsed time that didn't send and receive any data,
@@ -2091,18 +2114,56 @@ int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
             MQTT_CODE_CONTINUE, &client->network_time_ms,
             timeout_ms, client->net->get_timer_ms());
         if (check_rc == MQTT_CODE_ERROR_TIMEOUT) {
-            rc = MQTT_CODE_ERROR_NETWORK;
+            recv_rc = MQTT_CODE_ERROR_NETWORK;
         }
     }
-    while (rc == MQTT_CODE_SUCCESS) {
-        rc = MqttClient_WaitType(
-            client, msg, MQTT_PACKET_TYPE_ANY,
-            0, timeout_ms);
-        break;
+    /* When can not sending ping and publish response at the same time
+        they are exclusive to each other */
+    if (client->ping_sending &&
+        client->publish_resp.stat.write == MQTT_MSG_BEGIN) {
+        client->start_time_ms = 0;
+        /* Sending ping request */
+        send_rc = MqttClient_Ping_ex(recv_rc, client, &client->ping);
+        if (send_rc != MQTT_CODE_CONTINUE) {
+            client->ping_sending = 0;
+        }
+    }
+    if (client->ping_sending == 0 && send_rc == MQTT_CODE_SUCCESS) {
+        MqttPublishRespBody *resp_body_head = client->resp_queue.data + client->resp_queue.head;
+        if (resp_body_head->resp_type != MQTT_PACKET_TYPE_RESERVED) {
+            /* Handling publish response */
+            if (client->publish_resp.stat.write == MQTT_MSG_BEGIN) {
+                XMEMSET(&client->publish_resp, 0, sizeof(client->publish_resp));
+            #ifdef WOLFMQTT_V5
+                client->publish_resp.protocol_level = client->protocol_level;
+            #endif
+            }
+            send_rc = MqttClient_SendPublishResp(
+                recv_rc, client, &client->publish_resp, resp_body_head->resp_type,
+                resp_body_head->packet_id, resp_body_head->packet_qos);
+            if (send_rc != MQTT_CODE_CONTINUE) {
+                if (send_rc == MQTT_CODE_SUCCESS) {
+                    XMEMSET(resp_body_head, 0, sizeof(resp_body_head[0]));
+                    client->resp_queue.head = (client->resp_queue.head + 1) % MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX;
+                } else {
+                    /* Sending publish response failed, clear the whole queue */
+                    memset(&client->resp_queue, 0, sizeof(client->resp_queue));
+                }
+            }
+        }
+    }
+    rc = recv_rc;
+    if (rc == MQTT_CODE_SUCCESS) {
+        rc = send_rc;
+    } else if (rc == MQTT_CODE_CONTINUE) {
+        if (send_rc != MQTT_CODE_SUCCESS) {
+            rc = send_rc;
+        }
     }
     if (rc == MQTT_CODE_CONTINUE) {
         return rc;
     }
+    /* Cleanup receiving state as we either at success state or error state. */
     MqttClient_ResetReadState(client, &msg->stat);
     return rc;
 }

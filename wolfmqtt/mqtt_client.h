@@ -107,6 +107,18 @@ typedef struct _MqttSk {
     int len;
 } MqttSk;
 
+typedef struct _MqttPublishRespBody {
+    MqttQoS packet_qos;
+    MqttPacketType resp_type;
+    word16 packet_id;
+} MqttPublishRespBody;
+
+typedef struct _MqttPublishRespQueue {
+    int head;
+    int tail;
+    MqttPublishRespBody data[MQTT_PUBLISH_RESP_QUEUE_COUNT_MAX];
+} MqttPublishRespQueue;
+
 #ifdef WOLFMQTT_DISCONNECT_CB
     typedef int (*MqttDisconnectCb)(struct _MqttClient* client, int error_code, void* ctx);
 #endif
@@ -144,8 +156,12 @@ typedef struct _MqttClient {
     MqttTls      tls;   /* WolfSSL context for TLS */
 #endif
 
+    byte         ping_sending;     /* MqttClient_WaitMessage_ex also sending ping request */
     word32       start_time_ms;    /* Used for keep-alive */
     word32       network_time_ms;  /* Used to monitor if data received or sent */
+    MqttPing     ping;
+    MqttPublishRespQueue resp_queue;
+    MqttPublishResp      publish_resp;
     MqttPkRead   packet;
     MqttSk       read;
     MqttSk       write;
@@ -357,11 +373,12 @@ WOLFMQTT_API int MqttClient_Ping(
                 Ping Response packet. This version takes a MqttPing structure
                 and can be used with non-blocking applications.
  *  \discussion This is a blocking function that will wait for MqttNet.read
+ *  \param      rc          The previous return code
  *  \param      client      Pointer to MqttClient structure
  *  \return     MQTT_CODE_SUCCESS or MQTT_CODE_ERROR_*
                 (see enum MqttPacketResponseCodes)
  */
-WOLFMQTT_API int MqttClient_Ping_ex(MqttClient *client, MqttPing* ping);
+WOLFMQTT_API int MqttClient_Ping_ex(int rc, MqttClient *client, MqttPing* ping);
 
 #ifdef WOLFMQTT_V5
 /*! \brief      Encodes and sends the MQTT Authentication Request packet and
