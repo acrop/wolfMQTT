@@ -43,6 +43,7 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
         case WMQ_BEGIN:
         {
             mqttCtx->connect_start_time_ms = 0;
+            mqttCtx->connected = 0;
             ringbuf_reset(&mqttCtx->on_message_rb);
             ringbuf_reset(&mqttCtx->send_message_rb);
         }
@@ -106,6 +107,7 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
             }
 
             XMEMSET(&mqttCtx->client.msg, 0, sizeof(mqttCtx->client.msg));
+            mqttCtx->connected = 1;
         }
         FALL_THROUGH;
 
@@ -199,6 +201,7 @@ enum MqttPacketResponseCodes mqttclient_nb_state_machine(MQTTCtx *mqttCtx)
         case WMQ_DISCONNECT:
         {
             /* Disconnect */
+            mqttCtx->connected = 0;
             rc = MqttClient_Disconnect_ex(&mqttCtx->client,
                    mqttCtx->disconnect);
             if (rc == MQTT_CODE_CONTINUE) {

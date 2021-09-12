@@ -169,6 +169,7 @@ typedef struct _MQTTCtx {
     _Atomic(word16) package_id_last;
     struct ringbuf on_message_rb; // on message ring buffer
     struct ringbuf send_message_rb; // send message ring buffer
+    _Atomic(word16) connected;
     int return_code;
     int use_tls;
     int retain;
