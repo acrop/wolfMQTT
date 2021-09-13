@@ -409,6 +409,7 @@ typedef struct _SocketContext {
     SOCKET_T pfd[2];
 #endif
     MQTTCtx* mqttCtx;
+    int shown;
 } SocketContext;
 
 /* Private functions */
@@ -801,9 +802,11 @@ static int NetConnect(void *context, const char* host, word16 port,
     switch(sock->stat) {
         case SOCK_BEGIN:
         {
-            PRINTF("NetConnect: Host %s, Port %u, Timeout %d ms, Use TLS %d",
-                host, port, timeout_ms, mqttCtx->use_tls);
-
+            if (!sock->shown) {
+                sock->shown = 1;
+                PRINTF("NetConnect: Host %s, Port %u, Timeout %d ms, Use TLS %d",
+                    host, port, timeout_ms, mqttCtx->use_tls);
+            }
             XMEMSET(&hints, 0, sizeof(hints));
             hints.ai_family = AF_INET;
             hints.ai_socktype = SOCK_STREAM;
@@ -912,10 +915,12 @@ static int NetConnect(void *context, const char* host, word16 port,
     (void)timeout_ms;
 
 exit:
+#ifdef WOLFMQTT_DEBUG_SOCKET
     /* Show error */
     if (rc != 0 && rc != MQTT_CODE_CONTINUE && rc != MQTT_CODE_ERROR_ROUTE_TO_HOST) {
         PRINTF("NetConnect: Rc=%d, SoErr=%d", rc, so_error);
     }
+#endif
 
     return rc;
 }
