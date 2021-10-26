@@ -41,8 +41,20 @@ static int mqtt_disconnect_cb(MqttClient* client, int error_code, void* ctx)
 {
     (void)client;
     (void)ctx;
+    MQTTCtx* mqttCtx = (MQTTCtx*)client->ctx;
     PRINTF("Network Error Callback: %s (error %d errno %d)",
         MqttClient_ReturnCodeToString(error_code), error_code, errno);
+    char topic[] = "/internal/";
+    char payload[] = "{\"connect\":false}";
+    word16 topic_len = strlen(topic);
+    word32 payload_len = strlen(payload);
+    word32 total_len = sizeof(word32) + sizeof(topic_len) + topic_len + 1 + payload_len + 1;
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&total_len, sizeof(total_len));
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&topic_len, sizeof(topic_len));
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)topic, topic_len);
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)"\0", 1);
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)payload, payload_len);
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)"\0", 1);
     return 0;
 }
 #endif
@@ -454,6 +466,20 @@ void mqttclient_subscribe_finalize(int rc, MQTTCtx *mqttCtx)
             topic->topic_filter,
             topic->qos, topic->return_code);
     }
+
+    /* send connect msq to logic */
+
+    char topic[] = "/internal/";
+    char payload[] = "{\"connect\":true}";
+    word16 topic_len = strlen(topic);
+    word32 payload_len = strlen(payload);
+    word32 total_len = sizeof(word32) + sizeof(topic_len) + topic_len + 1 + payload_len + 1;
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&total_len, sizeof(total_len));
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)&topic_len, sizeof(topic_len));
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)topic, topic_len);
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)"\0", 1);
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)payload, payload_len);
+    ringbuf_write(&mqttCtx->on_message_rb, (const uint8_t*)"\0", 1);
 }
 
 void mqttclient_unsubscribe_initialize(MQTTCtx *mqttCtx)
