@@ -67,9 +67,14 @@
     /* Default MQTT host broker to use,
      * when none is specified in the examples */
     #define DEFAULT_MQTT_HOST   "test.mosquitto.org"
-    /* "iot.eclipse.org" */
-    /* "broker.emqx.io" */
-    /* "broker.hivemq.com" */
+#endif
+#if 0
+    #define DEFAULT_MQTT_HOST   "127.0.0.1"
+    #define DEFAULT_MQTT_HOST   "www.baidu.com"
+    #define DEFAULT_MQTT_HOST   "iot.eclipse.org"
+    #define DEFAULT_MQTT_HOST   "broker.emqx.io"
+    #define DEFAULT_MQTT_HOST   "broker-cn.emqx.io"
+    #define DEFAULT_MQTT_HOST   "broker.hivemq.com"
 #endif
 
 #define DEFAULT_CMD_TIMEOUT_MS  30000
