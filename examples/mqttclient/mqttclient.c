@@ -252,10 +252,12 @@ int mqttclient_test(MQTTCtx *mqttCtx)
     }
 #endif
 
-    /* Connect to broker */
-    rc = MqttClient_NetConnect(&mqttCtx->client, mqttCtx->host,
-           mqttCtx->port,
-        DEFAULT_CON_TIMEOUT_MS, mqttCtx->use_tls, mqtt_tls_cb);
+    do {
+        /* Connect to broker */
+        rc = MqttClient_NetConnect(&mqttCtx->client, mqttCtx->host,
+            mqttCtx->port,
+            DEFAULT_CON_TIMEOUT_MS, mqttCtx->use_tls, mqtt_tls_cb);
+    } while (rc == MQTT_CODE_CONTINUE);
 
     PRINTF("MQTT Socket Connect: %s (%d)",
         MqttClient_ReturnCodeToString(rc), rc);
@@ -338,8 +340,10 @@ int mqttclient_test(MQTTCtx *mqttCtx)
     }
 #endif
 
-    /* Send Connect and wait for Connect Ack */
-    rc = MqttClient_Connect(&mqttCtx->client, &mqttCtx->connect);
+    do {
+        /* Send Connect and wait for Connect Ack */
+        rc = MqttClient_Connect(&mqttCtx->client, &mqttCtx->connect);
+    } while (rc == MQTT_CODE_CONTINUE);
 
     PRINTF("MQTT Connect: Proto (%s), %s (%d)",
         MqttClient_GetProtocolVersionString(&mqttCtx->client),
@@ -396,7 +400,9 @@ int mqttclient_test(MQTTCtx *mqttCtx)
             sizeof(mqttCtx->topics) / sizeof(MqttTopic);
     mqttCtx->subscribe.topics = mqttCtx->topics;
 
-    rc = MqttClient_Subscribe(&mqttCtx->client, &mqttCtx->subscribe);
+    do {
+        rc = MqttClient_Subscribe(&mqttCtx->client, &mqttCtx->subscribe);
+    } while (rc == MQTT_CODE_CONTINUE);
 
 #ifdef WOLFMQTT_V5
     if (mqttCtx->subscribe.props != NULL) {
@@ -471,7 +477,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
         */
         do {
             rc = MqttClient_Publish(&mqttCtx->client, &mqttCtx->publish);
-        } while(rc == MQTT_CODE_PUB_CONTINUE);
+        } while(rc == MQTT_CODE_PUB_CONTINUE || rc == MQTT_CODE_CONTINUE);
 
         if ((mqttCtx->pub_file) && (mqttCtx->publish.buffer)) {
             WOLFMQTT_FREE(mqttCtx->publish.buffer);
@@ -555,7 +561,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
                 break;
             }
         }
-        else if (rc != MQTT_CODE_SUCCESS) {
+        else if (rc != MQTT_CODE_SUCCESS && rc != MQTT_CODE_CONTINUE) {
             /* There was an error */
             PRINTF("MQTT Message Wait: %s (%d)",
                 MqttClient_ReturnCodeToString(rc), rc);
@@ -576,8 +582,10 @@ int mqttclient_test(MQTTCtx *mqttCtx)
     mqttCtx->unsubscribe.topics = mqttCtx->topics;
 
     /* Unsubscribe Topics */
-    rc = MqttClient_Unsubscribe(&mqttCtx->client,
+    do {
+        rc = MqttClient_Unsubscribe(&mqttCtx->client,
            &mqttCtx->unsubscribe);
+    } while (rc == MQTT_CODE_CONTINUE);
 
     PRINTF("MQTT Unsubscribe: %s (%d)",
         MqttClient_ReturnCodeToString(rc), rc);
@@ -593,7 +601,7 @@ disconn:
 
     PRINTF("MQTT Disconnect: %s (%d)",
         MqttClient_ReturnCodeToString(rc), rc);
-    if (rc != MQTT_CODE_SUCCESS) {
+    if (rc == MQTT_CODE_CONTINUE) {
         goto disconn;
     }
 
