@@ -18,7 +18,7 @@
 
 /* MQTT-SN Support */
 #undef WOLFMQTT_SN
-#if 1
+#if 0
   #define WOLFMQTT_SN
 #endif
 
