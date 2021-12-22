@@ -165,6 +165,7 @@ typedef struct _MqttClient {
     SN_Object    msgSN;
     SN_ClientRegisterCb reg_cb;
     void               *reg_ctx;
+    SN_Will            *will_ack;
 #endif
     void*        ctx;   /* user supplied context for publish callbacks */
 
