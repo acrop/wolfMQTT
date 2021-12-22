@@ -1134,7 +1134,9 @@ wait_again:
 
 
 /* Public Functions */
-int MqttClient_Init(MqttClient *client, MqttNet* net,
+int MqttClient_Init(MqttClient *client,
+    void *ctx,
+    MqttClientCb ctx_init_cb,
     MqttMsgCb msg_cb,
     byte* tx_buf, int tx_buf_len,
     byte* rx_buf, int rx_buf_len,
@@ -1143,7 +1145,7 @@ int MqttClient_Init(MqttClient *client, MqttNet* net,
     int rc = MQTT_CODE_SUCCESS;
 
     /* Check arguments */
-    if (client == NULL ||
+    if (client == NULL || ctx_init_cb == NULL ||
         tx_buf == NULL || tx_buf_len <= 0 ||
         rx_buf == NULL || rx_buf_len <= 0) {
         return MQTT_CODE_ERROR_BAD_ARG;
@@ -1159,6 +1161,14 @@ int MqttClient_Init(MqttClient *client, MqttNet* net,
     client->rx_buf = rx_buf;
     client->rx_buf_len = rx_buf_len;
     client->cmd_timeout_ms = cmd_timeout_ms;
+
+    client->ctx = ctx;
+#ifdef WOLFMQTT_NONBLOCK
+    client->useNonBlockMode = 1;
+#else
+    client->useNonBlockMode = 0;
+#endif
+
 #ifdef WOLFMQTT_V5
     client->max_qos = MQTT_QOS_2;
     client->retain_avail = 1;
@@ -1179,8 +1189,13 @@ int MqttClient_Init(MqttClient *client, MqttNet* net,
 #endif
 
     if (rc == 0) {
+        /* Initialize client with ctx */
+        rc = ctx_init_cb(client);
+    }
+
+    if (rc == 0) {
         /* Init socket */
-        rc = MqttSocket_Init(client, net);
+        rc = MqttSocket_Init(client);
     }
 
     if (rc != 0) {
@@ -1194,6 +1209,11 @@ int MqttClient_Init(MqttClient *client, MqttNet* net,
 void MqttClient_DeInit(MqttClient *client)
 {
     if (client != NULL) {
+        /* Cleanup network */
+        if (client->net.deinit != NULL) {
+            client->net.deinit(client);
+        }
+
 #ifdef WOLFMQTT_MULTITHREAD
         (void)wm_SemFree(&client->lockSend);
         (void)wm_SemFree(&client->lockRecv);
