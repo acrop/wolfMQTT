@@ -119,7 +119,7 @@ static int check_response(MqttMsgHeader *header, MQTTCtx* mqttCtx, int rc)
     /* check for test mode */
     if (mqtt_stop_get()) {
         PRINTF("MQTT Exiting...");
-        rc = MQTT_CODE_SUCCESS;
+        rc = MQTT_CODE_ERROR_SYSTEM;
         goto early_exit;
     }
 
@@ -175,9 +175,11 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
         XMEMCPY(buf, msg->topic_name, len);
         buf[len] = '\0'; /* Make sure its null terminated */
 
+    #ifdef WOLFMQTT_DEBUG_THREAD
         /* Print incoming message */
         PRINTF("MQTT Message: Topic %s, Qos %d, Id %d, Len %u",
             buf, msg->header.packet.qos, msg->header.packet.id, msg->total_len);
+    #endif
 
         /* count the number of TEST_MESSAGE matches received */
         {
@@ -198,11 +200,13 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
     }
     XMEMCPY(buf, msg->buffer, len);
     buf[len] = '\0'; /* Make sure its null terminated */
-    PRINTF("Payload (%d:%d) (%d - %d): %s", mNumMsgsSent, mNumMsgsRecv,
-        msg->buffer_pos, msg->buffer_pos + len, buf);
+    if (mNumMsgsRecv % 8192 == 0) {
+        PRINTF("Payload (%d:%d) (%d - %d): %s", mNumMsgsSent, mNumMsgsRecv,
+            msg->buffer_pos, msg->buffer_pos + len, buf);
 
-    if (msg_done) {
-        PRINTF("MQTT Message: Done");
+        if (msg_done) {
+            PRINTF("MQTT Message: Done");
+        }
     }
 
     /* Return negative to terminate publish processing */
@@ -510,7 +514,7 @@ static void *publish_task(void *param)
     MQTTCtx *mqttCtx = (MQTTCtx*)param;
     MqttPublish publish;
     word16 packet_id;
-
+again:
     /* Publish Topic */
     XMEMSET(&publish, 0, sizeof(MqttPublish));
     publish.retain = 0;
@@ -533,6 +537,10 @@ static void *publish_task(void *param)
     } while (rc == MQTT_CODE_CONTINUE || rc == MQTT_CODE_STDIN_WAKE);
 
     mNumMsgsSent += 1;
+    if (rc == MQTT_CODE_SUCCESS) {
+        goto again;
+    }
+
     check_test_mode_exit();
 
     PRINTF("MQTT Publish (%d:%d): Topic %s, %s (%d)", mNumMsgsSent, mNumMsgsRecv,

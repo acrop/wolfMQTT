@@ -76,7 +76,7 @@
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/i686-pc-windows-msvc-14-Debug/bin/multithread.exe",
-      "args": ["-T", "-C", "1000000", "-q", "2", "-h", "127.0.0.1"], // "broker-cn.emqx.io"
+      "args": ["-C", "1000000", "-q", "0", "-h", "127.0.0.1"], // "broker-cn.emqx.io"
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [

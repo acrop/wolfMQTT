@@ -80,7 +80,7 @@
 
 /* Debugging */
 #undef DEBUG_WOLFMQTT
-#if 1
+#if 0
   #define DEBUG_WOLFMQTT
 #endif
 
@@ -90,12 +90,12 @@
 #endif
 
 #undef WOLFMQTT_DEBUG_SOCKET
-#if 1
+#if 0
   #define WOLFMQTT_DEBUG_SOCKET
 #endif
 
 #undef WOLFMQTT_DEBUG_THREAD
-#if 1
+#if 0
   #define WOLFMQTT_DEBUG_THREAD
 #endif
 
