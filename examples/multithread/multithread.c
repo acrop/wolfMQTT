@@ -43,7 +43,7 @@ const char TEST_MESSAGE[] =    "0000"
 "test";
 
 /* Number of publish tasks. Each will send a unique message to the broker. */
-#define NUM_PUB_TASKS   10
+#define NUM_PUB_TASKS   1
 
 
 /* Locals */
