@@ -161,12 +161,11 @@ static int mqtt_message_cb(MqttClient *client, MqttMessage *msg,
         PRINTF("MQTT Message: Topic %s, Qos %d, Id %d, Len %u, %u, %u",
             buf, msg->qos, msg->packet_id, msg->total_len, msg->buffer_len, msg->buffer_pos);
 
-        /* for test mode: count the number of TEST_MESSAGE matches received */
-        if (mqttCtx->test_mode) {
-            if (XSTRLEN(TEST_MESSAGE) == msg->buffer_len &&
-                /* Only compare the "test" part */
-                XSTRNCMP(TEST_MESSAGE, (char*)msg->buffer,
-                         msg->buffer_len-2) == 0)
+        /* count the number of TEST_MESSAGE matches received */
+        {
+            /* Only compare the "test" part */
+            if (XSTRNCMP(TEST_MESSAGE + 4, (char*)msg->buffer + 4,
+                         msg->buffer_len-4) == 0)
             {
                 mNumMsgsRecvd++;
             }
@@ -265,14 +264,14 @@ static int multithread_test_init(MQTTCtx *mqttCtx)
     }
 
     /* setup tx/rx buffers */
-    mqttCtx->tx_buf = (byte*)WOLFMQTT_MALLOC(MAX_BUFFER_SIZE);
-    mqttCtx->rx_buf = (byte*)WOLFMQTT_MALLOC(MAX_BUFFER_SIZE);
+    mqttCtx->tx_buf = (byte*)WOLFMQTT_MALLOC(128);
+    mqttCtx->rx_buf = (byte*)WOLFMQTT_MALLOC(128);
 
     /* Initialize MqttClient structure */
     rc = MqttClient_Init(&mqttCtx->client, &mqttCtx->net,
         mqtt_message_cb,
-        mqttCtx->tx_buf, MAX_BUFFER_SIZE,
-        mqttCtx->rx_buf, MAX_BUFFER_SIZE,
+        mqttCtx->tx_buf, 128,
+        mqttCtx->rx_buf, 128,
         mqttCtx->cmd_timeout_ms);
 
     PRINTF("MQTT Init: %s (%d)",
