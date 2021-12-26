@@ -35,6 +35,8 @@ then
     mosquitto -c scripts/broker_test/mosquitto.conf &
     broker_pid=$!
     def_args="${def_args} -h localhost"
+    sleep 1s
+    true
 fi
 
 # Start firmware push
