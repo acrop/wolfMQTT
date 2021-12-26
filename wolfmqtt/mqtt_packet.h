@@ -479,6 +479,7 @@ typedef struct _MqttMessage {
     MqttQoS     qos;
     byte        retain;
     byte        duplicate;
+    byte        skip; /* Used to skip duplicate package receiving */
 #ifdef WOLFMQTT_SN
     byte        topic_type;
     byte        return_code;
