@@ -38,9 +38,10 @@ jobs:
       run: make
     - name: make check
       run: make check
-    - name: configure with SN Enabled
-      run: ./configure --enable-sn
-    - name: make
-      run: make
-    - name: make check
-      run: make check
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: build-error-log
+        path: |
+          ./test-suite.log
+      if: always()
