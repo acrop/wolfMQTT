@@ -135,7 +135,10 @@ typedef struct _MqttSk {
 typedef struct _MqttClient {
     word32       flags; /* MqttClientFlags */
     int          cmd_timeout_ms;
+    word32       keep_alive_ms;
 
+    word32       time_socket_write_ms; /* The latest time when data written to socket */
+    word32       time_socket_read_ms; /* The latest time when data read from socket */
     byte        *tx_buf;
     int          tx_buf_len;
     byte        *rx_buf;
@@ -252,6 +255,14 @@ WOLFMQTT_API int MqttClient_SetPropertyCallback(
     MqttPropertyCb propCb,
     void* ctx);
 #endif
+
+/*! \brief      Check if timeout
+ *  \param      start_ms    Start time in ms
+ *  \param      timeout_ms  Timeout parameter in ms
+ *  \param      now_ms      Current time in ms
+ *  \return     1 when timeout, otherwise 0
+ */
+WOLFMQTT_API byte MqttClient_CheckTimeout(word32 start_ms, word32 timeout_ms, word32 now_ms);
 
 /*! \brief      Encodes and sends the MQTT Connect packet and waits for the
                 Connect Acknowledgment packet
@@ -418,28 +429,11 @@ WOLFMQTT_API int MqttClient_Disconnect_ex(
                 will arrive via callback provided in MqttClient_Init.
  *  \note This is a blocking function that will wait for MqttNet.read
  *  \param      client      Pointer to MqttClient structure
- *  \param      timeout_ms  Milliseconds until read timeout
  *  \return     MQTT_CODE_SUCCESS or MQTT_CODE_ERROR_*
                 (see enum MqttPacketResponseCodes)
  */
 WOLFMQTT_API int MqttClient_WaitMessage(
-    MqttClient *client,
-    int timeout_ms);
-
-/*! \brief      Waits for packets to arrive. Incoming publish messages
-                will arrive via callback provided in MqttClient_Init.
- *  \note This is a blocking function that will wait for MqttNet.read
- *  \param      client      Pointer to MqttClient structure
- *  \param      msg         Pointer to MqttObject structure
- *  \param      timeout_ms  Milliseconds until read timeout
- *  \return     MQTT_CODE_SUCCESS or MQTT_CODE_ERROR_*
-                (see enum MqttPacketResponseCodes)
- */
-WOLFMQTT_API int MqttClient_WaitMessage_ex(
-    MqttClient *client,
-    MqttObject* msg,
-    int timeout_ms);
-
+    MqttClient *client);
 
 /*! \brief      Performs network connect with TLS (if use_tls is non-zero value)
  *  Will perform the MqttTlsCb callback if use_tls is non-zero value

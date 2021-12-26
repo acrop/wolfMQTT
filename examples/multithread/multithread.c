@@ -108,21 +108,6 @@ static int check_response(MQTTCtx* mqttCtx, int rc, word32* startSec)
         return MQTT_CODE_SUCCESS;
     }
 
-#ifdef WOLFMQTT_NONBLOCK
-    /* Track elapsed time with no activity and trigger timeout */
-    rc = mqtt_check_timeout(rc, startSec, mqttCtx->cmd_timeout_ms/1000);
-
-    /* check return code */
-    if (rc == MQTT_CODE_CONTINUE) {
-    #if 0
-        /* optionally add delay when debugging */
-        usleep(100*1000);
-    #endif
-    }
-#else
-    (void)startSec;
-    (void)mqttCtx;
-#endif
     return rc;
 }
 
@@ -427,7 +412,7 @@ static void *waitMessage_task(void *param)
 
     do {
         /* Try and read packet */
-        rc = MqttClient_WaitMessage(&mqttCtx->client, mqttCtx->cmd_timeout_ms);
+        rc = MqttClient_WaitMessage(&mqttCtx->client);
         rc = check_response(mqttCtx, rc, &startSec);
 
         /* check if we are in test mode and done */

@@ -319,8 +319,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
 
             do {
                 /* Try and read packet */
-                rc = MqttClient_WaitMessage(&mqttCtx->client,
-                                                mqttCtx->cmd_timeout_ms);
+                rc = MqttClient_WaitMessage(&mqttCtx->client);
 
                 /* check for test mode */
                 if (mStopRead) {
@@ -328,10 +327,6 @@ int mqttclient_test(MQTTCtx *mqttCtx)
                     PRINTF("MQTT Exiting...");
                     break;
                 }
-
-                /* Track elapsed time with no activity and trigger timeout */
-                rc = mqtt_check_timeout(rc, &mqttCtx->start_sec,
-                    mqttCtx->cmd_timeout_ms/1000);
 
                 /* check return code */
                 if (rc == MQTT_CODE_CONTINUE) {
@@ -393,11 +388,6 @@ int mqttclient_test(MQTTCtx *mqttCtx)
             /* Unsubscribe Topics */
             rc = MqttClient_Unsubscribe(&mqttCtx->client,
                 &mqttCtx->unsubscribe);
-            if (rc == MQTT_CODE_CONTINUE) {
-                /* Track elapsed time with no activity and trigger timeout */
-                return mqtt_check_timeout(rc, &mqttCtx->start_sec,
-                    mqttCtx->cmd_timeout_ms/1000);
-            }
             PRINTF("MQTT Unsubscribe: %s (%d)",
                 MqttClient_ReturnCodeToString(rc), rc);
             if (rc != MQTT_CODE_SUCCESS) {

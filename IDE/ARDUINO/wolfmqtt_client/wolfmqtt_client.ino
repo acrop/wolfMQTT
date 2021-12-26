@@ -325,7 +325,7 @@ void loop() {
       Serial.println("MQTT Waiting for message...");
       while (mStopRead == 0) {
         /* Try and read packet */
-        rc = MqttClient_WaitMessage(&client, DEFAULT_CMD_TIMEOUT_MS);
+        rc = MqttClient_WaitMessage(&client);
         if (rc != MQTT_CODE_SUCCESS && rc != MQTT_CODE_ERROR_TIMEOUT) {
           /* There was an error */
           Serial.print("MQTT Message Wait: ");

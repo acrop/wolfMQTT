@@ -332,6 +332,18 @@ static int Handle_Props(MqttClient* client, MqttProp* props, byte use_cb)
 }
 #endif
 
+byte MqttClient_CheckTimeout(word32 start_ms, word32 timeout_ms, word32 now_ms)
+{
+    word32 elapsed_ms = now_ms - start_ms;
+    /* For handling now_ms < start_ms when now_ms overflow (2^32 -1) */
+    if (elapsed_ms < (1u << 30)) {
+        if (elapsed_ms > timeout_ms) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
 
 /* Returns length decoded or error (as negative) */
 /*! \brief      Take a received MQTT packet and try and decode it
@@ -2213,17 +2225,27 @@ int MqttClient_PropsFree(MqttProp *head)
 
 #endif /* WOLFMQTT_V5 */
 
-int MqttClient_WaitMessage_ex(MqttClient *client, MqttObject* msg,
-        int timeout_ms)
+int MqttClient_WaitMessage(MqttClient *client)
 {
-    return MqttClient_WaitType(client, msg, MQTT_PACKET_TYPE_ANY, 0,
+    word32 timeout_ms = client->keep_alive_ms;
+    int rc = MqttClient_WaitType(client, &client->msg, MQTT_PACKET_TYPE_ANY, 0,
         timeout_ms);
-}
-int MqttClient_WaitMessage(MqttClient *client, int timeout_ms)
-{
-    if (client == NULL)
-        return MQTT_CODE_ERROR_BAD_ARG;
-    return MqttClient_WaitMessage_ex(client, &client->msg, timeout_ms);
+    if (rc == MQTT_CODE_CONTINUE || rc == MQTT_CODE_SUCCESS) {
+        if  (client && client->net.get_time_ms) {
+            word32 now_ms = client->net.get_time_ms();
+            if (MqttClient_CheckTimeout(client->time_socket_write_ms, timeout_ms, now_ms)) {
+                rc = MQTT_CODE_ERROR_TIMEOUT;
+            }
+            if (MqttClient_CheckTimeout(client->time_socket_read_ms, timeout_ms, now_ms)) {
+                rc = MQTT_CODE_ERROR_TIMEOUT;
+            }
+            if (rc == MQTT_CODE_ERROR_TIMEOUT) {
+                client->time_socket_write_ms = now_ms;
+                client->time_socket_read_ms = now_ms;
+            }
+        }
+    }
+    return rc;
 }
 
 int MqttClient_NetConnect(MqttClient *client, const char* host,

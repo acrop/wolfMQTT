@@ -419,6 +419,7 @@ typedef struct _SocketContext {
     SOCKET_T fd;
     NB_Stat stat;
     SOCK_ADDR_IN addr;
+    word32 start_time_ms;
 #ifdef MICROCHIP_MPLAB_HARMONY
     word32 bytes;
 #endif
@@ -866,6 +867,7 @@ static int NetConnect(void *context, const char* host, word16 port,
             XMEMSET(&sock->addr, 0, sizeof(sock->addr));
             sock->addr.sin_family = AF_INET;
             sock->fd = SOCKET_INVALID;
+            sock->start_time_ms = mqttCtx->net.get_time_ms();
 
             rc = SOCK_GETADDRINFO(host, NULL, &hints, &result);
             if (rc == 0) {
@@ -925,7 +927,11 @@ static int NetConnect(void *context, const char* host, word16 port,
             rc = SOCK_CONNECT(sock->fd, (struct sockaddr*)&sock->addr,
                     sizeof(sock->addr));
             if (rc >= 0) {
-                rc = MQTT_CODE_SUCCESS;
+                word32 now = mqttCtx->net.get_time_ms();
+                if (MqttClient_CheckTimeout(sock->start_time_ms, timeout_ms, now))  {
+                    rc = MQTT_CODE_ERROR_TIMEOUT;
+                    sock->start_time_ms = now;
+                }
                 break;
             }
             /* set default error case */
@@ -949,6 +955,11 @@ static int NetConnect(void *context, const char* host, word16 port,
             if (rc != MQTT_CODE_SUCCESS) {
                 /* Check for error */
                 rc = NetGetError(sock);
+            }
+            if (rc == MQTT_CODE_SUCCESS) {
+                word32 now_ms = mqttCtx->net.get_time_ms();
+                mqttCtx->time_socket_read_ms = now_ms;
+                mqttCtx->time_socket_write_ms = now_ms;
             }
             break;
         }
@@ -1054,6 +1065,29 @@ static int SN_NetConnect(void *context, const char* host, word16 port,
     return rc;
 }
 #endif
+
+/* Always return value other than 0ms, if 0ms appeared, use 1ms instead */
+static word32 NetGetTimeMs(void)
+{
+    word32 now_time_ms = 0;
+#if defined(WOLFSSL_LWIP)
+    now_time_ms = sys_now();
+#elif defined(MICROCHIP_MPLAB_HARMONY)
+    now_time_ms = (word32)(SYS_TMR_TickCountGet() * 1000llu /
+            SYS_TMR_TickCounterFrequencyGet());
+#elif defined(_WIN32)
+    FILETIME st;
+    ULARGE_INTEGER ul;
+    GetSystemTimeAsFileTime(&st);
+    ul.LowPart = st.dwLowDateTime;
+    ul.HighPart = st.dwHighDateTime;
+    now_time_ms = ul.QuadPart / 10000.0 - 11644473600000LL;
+#else
+    /* TODO: precise Posix style time */
+    now_time_ms = (word32)(time(0) * 1000llu);
+#endif
+    return now_time_ms;
+}
 
 static int NetWrite(void *context, const byte* buf, int buf_len,
     int timeout_ms)
@@ -1263,6 +1297,7 @@ static int MqttClientNet_InitShared(MqttClient* client)
     if (sockCtx == NULL) {
         return MQTT_CODE_ERROR_MEMORY;
     }
+    client->net.get_time_ms = NetGetTimeMs;
     client->net.read = NetRead;
     client->net.write = NetWrite;
     client->net.disconnect = NetDisconnect;

@@ -507,14 +507,7 @@ int mqttclient_test(MQTTCtx *mqttCtx)
 
     do {
         /* Try and read packet */
-        rc = MqttClient_WaitMessage(&mqttCtx->client,
-                                            mqttCtx->cmd_timeout_ms);
-
-    #ifdef WOLFMQTT_NONBLOCK
-        /* Track elapsed time with no activity and trigger timeout */
-        rc = mqtt_check_timeout(rc, &mqttCtx->start_sec,
-            mqttCtx->cmd_timeout_ms/1000);
-    #endif
+        rc = MqttClient_WaitMessage(&mqttCtx->client);
 
         /* check for test mode */
         if (mStopRead) {

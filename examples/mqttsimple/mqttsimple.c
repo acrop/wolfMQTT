@@ -433,7 +433,7 @@ int mqttsimple_test(void)
 
     /* Wait for messages */
     while (1) {
-        rc = MqttClient_WaitMessage_ex(&mClient, &mqttObj, MQTT_CMD_TIMEOUT_MS);
+        rc = MqttClient_WaitMessage(&mClient);
 
         if (rc == MQTT_CODE_ERROR_TIMEOUT) {
             /* send keep-alive ping */

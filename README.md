@@ -78,9 +78,9 @@ These API's are blocking on `MqttNet.read` until error/timeout (`cmd_timeout_ms`
 * `int MqttClient_Ping(MqttClient *client);`
 * `int MqttClient_Disconnect(MqttClient *client);`
 
-This function blocks waiting for a new publish message to arrive for a maximum duration of `timeout_ms`.
+This function blocks waiting for a new publish message to arrive.
 
-* `int MqttClient_WaitMessage(MqttClient *client, MqttMessage *message, int timeout_ms);`
+* `int MqttClient_WaitMessage(MqttClient *client);`
 
 These are the network connect / disconnect interfaces that wrap the MqttNet callbacks and handle WolfSSL TLS:
 
@@ -120,7 +120,7 @@ Here are the steps for creating your own implementation.
 4. Call `MqttClient_NetConnect` to connect to broker over network. If `use_tls` is non-zero value then it will perform a TLS connection. The TLS callback `MqttTlsCb` should be defined for wolfSSL certificate configuration.
 5. Call `MqttClient_Connect` passing pointer to `MqttConnect` structure to send MQTT connect command and wait for Connect Ack.
 6. Call `MqttClient_Subscribe` passing pointer to `MqttSubscribe` structure to send MQTT Subscribe command and wait for Subscribe Ack (depending on QoS level).
-7. Call `MqttClient_WaitMessage` passing pointer to `MqttMessage` to wait for incoming MQTT Publish message.
+7. Call `MqttClient_WaitMessage` to wait for incoming MQTT Publish message, it's always using client.msg to receive the incoming MQTT Publish message.
 
 
 ## Examples
