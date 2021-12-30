@@ -40,6 +40,10 @@
 #include <unistd.h>
 #endif
 
+#if defined(_WIN32)
+#include <ws2tcpip.h>
+#endif
+
 /* Configuration */
 #define MQTT_HOST            "test.mosquitto.org" /* broker.hivemq.com */
 #define MQTT_QOS             MQTT_QOS_0
