@@ -126,13 +126,9 @@ static const struct MqttPropMatrix gPropMatrix[] = {
     { MQTT_PROP_TYPE_MAX, MQTT_DATA_TYPE_NONE, 0 }
 };
 
-#ifndef MQTT_MAX_PROPS
-#define MQTT_MAX_PROPS 30
-#endif
-
 /* Property structure allocation array. Property type equal
    to zero indicates unused element. */
-static MqttProp clientPropStack[MQTT_MAX_PROPS];
+static MqttProp clientPropStack[WOLFMQTT_MAX_PROPS];
 #ifdef WOLFMQTT_MULTITHREAD
 static wm_Sem clientPropStack_lock;
 #endif
@@ -1823,7 +1819,7 @@ MqttProp* MqttProps_Add(MqttProp **head)
     };
 
     /* Find a free element */
-    for (i = 0; i < MQTT_MAX_PROPS; i++) {
+    for (i = 0; i < WOLFMQTT_MAX_PROPS; i++) {
         if (clientPropStack[i].type == 0) {
             /* Found one */
             new_prop = &clientPropStack[i];
